@@ -1,0 +1,11 @@
+{
+  "name": "syrve-loyalty",
+  "private": true,
+  "workspaces": ["apps/*"],
+  "scripts": {
+    "dev": "npm run dev -w apps/api",
+    "build": "npm run build -w apps/api",
+    "test": "npm run test -w apps/api"
+  },
+  "engines": { "node": ">=20" }
+}
