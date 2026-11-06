@@ -38,7 +38,7 @@ function onOperation(updated: Guest) {
 
 <template>
   <div class="space-y-5">
-    <UButton to="/guests" label="Усі гості" icon="i-lucide-arrow-left" color="neutral" variant="link" class="-ml-2.5 px-2.5" />
+    <UButton to="/admin/guests" label="Усі гості" icon="i-lucide-arrow-left" color="neutral" variant="link" class="-ml-2.5 px-2.5" />
 
     <UAlert v-if="error" color="error" variant="subtle" :title="error" />
     <div v-else-if="loading && !guest" class="py-16 text-center text-sm text-dimmed">Завантаження…</div>

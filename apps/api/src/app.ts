@@ -65,6 +65,9 @@ export async function buildApp({ config, prisma, syrve, resolveCtx, sessionSecre
   if (existsSync(adminStaticDir)) {
     await app.register(fastifyStatic, { root: adminStaticDir });
     app.setNotFoundHandler((req, reply) => {
+      // Старі адреси панелі (до появи лендінгу на «/») → /admin/*
+      const legacy = /^\/(login|guests|journal|stats|admins)(\/.*)?$/.exec(req.url);
+      if (req.method === 'GET' && legacy) return reply.redirect(`/admin${req.url}`, 301);
       const isPage = req.method === 'GET' && !/^\/(api|dev|docs|health)(\/|$)/.test(req.url) && !/\.\w+$/.test(req.url.split('?')[0]!);
       if (isPage) return reply.sendFile('index.html');
       return reply.code(404).send({ error: 'Не знайдено' });

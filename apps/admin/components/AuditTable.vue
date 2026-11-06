@@ -67,7 +67,7 @@ function describe(e: AuditEntry): string {
             </td>
             <td class="break-words px-4 py-3 text-toned">
               <template v-if="e.targetLabel">
-                <NuxtLink v-if="e.targetType === 'guest' && e.targetId" :to="`/guests/${e.targetId}`" class="hover:text-indigo-600 dark:hover:text-indigo-300">{{ e.targetLabel }}</NuxtLink>
+                <NuxtLink v-if="e.targetType === 'guest' && e.targetId" :to="`/admin/guests/${e.targetId}`" class="hover:text-indigo-600 dark:hover:text-indigo-300">{{ e.targetLabel }}</NuxtLink>
                 <span v-else>{{ e.targetLabel }}</span>
               </template>
               <span v-else class="text-dimmed">—</span>

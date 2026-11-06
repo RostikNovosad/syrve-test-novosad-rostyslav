@@ -1,4 +1,6 @@
+// Лендінг на «/» публічний; авторизація потрібна лише для /admin/*
 export default defineNuxtRouteMiddleware(async (to) => {
+  if (!to.path.startsWith('/admin')) return;
   const admin = useAdmin();
   if (admin.value === undefined) {
     try {
@@ -7,9 +9,10 @@ export default defineNuxtRouteMiddleware(async (to) => {
       admin.value = null;
     }
   }
-  if (!admin.value && to.path !== '/login') return navigateTo('/login');
-  if (admin.value && to.path === '/login') return navigateTo('/');
+  const isLogin = to.path === '/admin/login';
+  if (!admin.value && !isLogin) return navigateTo('/admin/login');
+  if (admin.value && isLogin) return navigateTo('/admin');
   // Сторінки з definePageMeta({ roles: [...] }) доступні лише вказаним ролям
   const roles = to.meta.roles as AdminRole[] | undefined;
-  if (admin.value && roles && !roles.includes(admin.value.role)) return navigateTo('/guests');
+  if (admin.value && roles && !roles.includes(admin.value.role)) return navigateTo('/admin/guests');
 });

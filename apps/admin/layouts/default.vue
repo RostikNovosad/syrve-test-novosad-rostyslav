@@ -2,16 +2,17 @@
 const admin = useAdmin();
 const api = useApi();
 const route = useRoute();
+useHead({ title: "Панель лояльності" });
 const colorMode = useColorMode();
 const isDark = computed(() => colorMode.value === 'dark');
 const toggleTheme = () => (colorMode.preference = isDark.value ? 'light' : 'dark');
 
 // roles — для яких ролей пункт видно (без roles — усім)
 const allNav: { label: string; to: string; icon: string; roles?: AdminRole[] }[] = [
-  { label: 'Працівники', to: '/admins', icon: 'i-lucide-shield-user', roles: ['owner'] },
-  { label: 'Статистика', to: '/stats', icon: 'i-lucide-chart-column', roles: ['owner'] },
-  { label: 'Гості', to: '/guests', icon: 'i-lucide-users' },
-  { label: 'Журнал', to: '/journal', icon: 'i-lucide-scroll-text' },
+  { label: 'Працівники', to: '/admin/admins', icon: 'i-lucide-shield-user', roles: ['owner'] },
+  { label: 'Статистика', to: '/admin/stats', icon: 'i-lucide-chart-column', roles: ['owner'] },
+  { label: 'Гості', to: '/admin/guests', icon: 'i-lucide-users' },
+  { label: 'Журнал', to: '/admin/journal', icon: 'i-lucide-scroll-text' },
 ];
 const nav = computed(() => allNav.filter((n) => !n.roles || (admin.value && n.roles.includes(admin.value.role))));
 
@@ -30,7 +31,7 @@ const isActive = (to: string) => route.path === to || route.path.startsWith(`${t
 async function logout() {
   await api('/auth/logout', { method: 'POST' }).catch(() => {});
   admin.value = null;
-  await navigateTo('/login');
+  await navigateTo('/admin/login');
 }
 </script>
 
@@ -40,7 +41,7 @@ async function logout() {
     <header class="z-40 flex h-14 shrink-0 items-center gap-3 border-b border-default bg-default px-4">
       <!-- Лише мобайл: сайдбар прихований, тож відкриваємо його звідси -->
       <UButton class="lg:hidden" icon="i-lucide-menu" color="neutral" variant="ghost" aria-label="Меню" @click="mobileOpen = true" />
-      <NuxtLink to="/guests" class="flex items-center gap-2.5">
+      <NuxtLink to="/admin/guests" class="flex items-center gap-2.5">
         <span class="flex size-8 items-center justify-center rounded-lg bg-indigo-600 text-white">
           <UIcon name="i-lucide-gem" class="size-4.5" />
         </span>

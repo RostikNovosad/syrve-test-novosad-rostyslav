@@ -109,7 +109,7 @@ async function findInSyrve() {
   findError.value = '';
   try {
     const g = await api<Guest>('/guests/lookup', { query: { phone: q.value } });
-    await navigateTo(`/guests/${g.customerId}`);
+    await navigateTo(`/admin/guests/${g.customerId}`);
   } catch (e) {
     findError.value = errorMessage(e);
   } finally {
@@ -122,7 +122,7 @@ function create() {
 }
 
 async function onSaved(id: string) {
-  await navigateTo(`/guests/${id}`);
+  await navigateTo(`/admin/guests/${id}`);
 }
 </script>
 
@@ -187,7 +187,7 @@ async function onSaved(id: string) {
               v-for="g in items"
               :key="g.customerId"
               class="cursor-pointer transition-colors hover:bg-indigo-50/60 dark:hover:bg-white/5"
-              @click="navigateTo(`/guests/${g.customerId}`)"
+              @click="navigateTo(`/admin/guests/${g.customerId}`)"
             >
               <td class="px-4 py-3">
                 <div class="flex items-center gap-3">

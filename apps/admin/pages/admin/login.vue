@@ -1,5 +1,6 @@
 <script setup lang="ts">
 definePageMeta({ layout: 'blank' });
+useHead({ title: 'Вхід — панель лояльності' });
 
 const api = useApi();
 const admin = useAdmin();
@@ -12,7 +13,7 @@ async function submit() {
   loading.value = true;
   try {
     admin.value = await api<{ login: string; role: AdminRole }>('/auth/login', { method: 'POST', body: form });
-    await navigateTo('/');
+    await navigateTo('/admin');
   } catch (e) {
     error.value = errorMessage(e);
   } finally {

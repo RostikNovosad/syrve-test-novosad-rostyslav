@@ -58,7 +58,7 @@ watch(page, load);
         <tbody class="divide-y divide-default">
           <tr v-for="o in items" :key="o.id" class="align-top">
             <td v-if="!customerId" class="px-4 py-3">
-              <NuxtLink :to="`/guests/${o.customerId}`" class="font-medium text-highlighted hover:text-indigo-600 dark:hover:text-indigo-300">{{ o.guestName }}</NuxtLink>
+              <NuxtLink :to="`/admin/guests/${o.customerId}`" class="font-medium text-highlighted hover:text-indigo-600 dark:hover:text-indigo-300">{{ o.guestName }}</NuxtLink>
               <div class="text-xs text-muted">{{ formatPhone(o.guestPhone) }}</div>
             </td>
             <td class="px-4 py-3">

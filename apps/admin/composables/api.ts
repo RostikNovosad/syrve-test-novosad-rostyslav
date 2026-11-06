@@ -48,7 +48,7 @@ export function useApi() {
     onResponseError({ request, response }) {
       if (response.status === 401 && !String(request).includes('/auth/')) {
         admin.value = null;
-        navigateTo('/login');
+        navigateTo('/admin/login');
       }
     },
   });
