@@ -29,7 +29,7 @@ if (config.ADMIN_LOGIN && config.ADMIN_PASSWORD) {
 
 if (config.SEED_MANAGER_LOGIN && config.SEED_MANAGER_PASSWORD) {
   const created = await seedManager(prisma, config.SEED_MANAGER_LOGIN, config.SEED_MANAGER_PASSWORD);
-  if (created) app.log.info(`Демо-менеджер "${config.SEED_MANAGER_LOGIN}" створено`);
+  if (created) app.log.info(`Менеджер "${config.SEED_MANAGER_LOGIN}" створено`);
 }
 
 try {

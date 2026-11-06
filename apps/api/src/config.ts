@@ -14,7 +14,7 @@ const schema = z.object({
   // Перший адміністратор (створюється/оновлюється на старті, якщо обидва задані)
   ADMIN_LOGIN: z.string().default(''),
   ADMIN_PASSWORD: z.string().default(''),
-  // Необовʼязковий демо-менеджер (роль manager); створюється на старті, якщо його ще немає
+  // Необовʼязковий менеджер (роль manager); створюється на старті, якщо його ще немає
   SEED_MANAGER_LOGIN: z.string().default(''),
   SEED_MANAGER_PASSWORD: z.string().default(''),
 });
