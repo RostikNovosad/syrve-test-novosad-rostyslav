@@ -1,11 +1,9 @@
 import type { Config } from '../config.js';
-import { MockSyrveClient } from './mock.js';
 import { RealSyrveClient } from './real.js';
 import { TokenProvider } from './token.js';
 import type { SyrveClient } from './types.js';
 
 export function createSyrveClient(config: Config): SyrveClient {
-  if (config.SYRVE_MODE === 'mock') return new MockSyrveClient();
   const tokens = new TokenProvider({ apiUrl: config.SYRVE_API_URL, apiLogin: config.SYRVE_API_LOGIN });
   return new RealSyrveClient({ apiUrl: config.SYRVE_API_URL, tokens });
 }

@@ -53,6 +53,11 @@ describe('RealSyrveClient: форми відповідей за документ
   it('гостя не знайдено → null, інша 400 → помилка', async () => {
     const nf = client({ 'customer/info': { errorDescription: 'Customer not found' } }, 400);
     expect(await nf.findCustomerByPhone('o', '+380')).toBeNull();
+    const real = client(
+      { 'customer/info': { errorCode: 'Validation_IncorrectPhone', message: 'There is no user with phone +380680245450' } },
+      400,
+    );
+    expect(await real.findCustomerByPhone('o', '+380')).toBeNull();
     const bad = client({ 'customer/info': { errorDescription: 'Invalid organizationId' } }, 400);
     await expect(bad.findCustomerByPhone('o', '+380')).rejects.toThrow(/Invalid organizationId/);
   });

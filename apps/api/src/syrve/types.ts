@@ -58,7 +58,7 @@ export interface WalletChange {
 }
 
 /**
- * Єдиний інтерфейс до Syrve Cloud API. Реалізації: RealSyrveClient, MockSyrveClient.
+ * Єдиний інтерфейс до Syrve Cloud API. Реалізація: RealSyrveClient.
  * Телефони — завжди у форматі +380XXXXXXXXX.
  */
 export interface SyrveClient {

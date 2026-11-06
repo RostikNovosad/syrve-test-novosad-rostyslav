@@ -1,5 +1,4 @@
 import type { FastifyInstance } from 'fastify';
-import { MockSyrveClient } from '../syrve/mock.js';
 import { RealSyrveClient } from '../syrve/real.js';
 import { SyrveError, type SyrveClient } from '../syrve/types.js';
 
@@ -220,29 +219,6 @@ export async function devRoutes(app: FastifyInstance, syrve: SyrveClient) {
       async (req) => {
         const b = req.body as { path: string; body?: unknown };
         return syrve.post(b.path.replace(/^\/+/, ''), b.body ?? {});
-      },
-    );
-  }
-
-  if (syrve instanceof MockSyrveClient) {
-    app.post(
-      '/dev/simulate-transaction',
-      {
-        schema: {
-          tags: TAG,
-          description: 'Mock: імітує транзакцію поза нашим сервісом (демо О6). sum<0 — списання.',
-          body: {
-            type: 'object',
-            required: ['customerId', 'sum'],
-            properties: { customerId: { type: 'string' }, sum: { type: 'number' }, comment: { type: 'string' } },
-          },
-        },
-      },
-      async (req, reply) => {
-        const { customerId, sum, comment } = req.body as { customerId: string; sum: number; comment?: string };
-        if (sum === 0) return reply.code(400).send({ error: 'sum не може бути 0' });
-        syrve.simulateTransaction(customerId, sum, comment);
-        return { ok: true };
       },
     );
   }

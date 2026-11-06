@@ -26,16 +26,16 @@ export async function buildApp({ config, prisma, syrve }: AppDeps): Promise<Fast
     try {
       await prisma.$queryRaw`SELECT 1`;
     } catch {
-      return reply.code(503).send({ status: 'error', db: 'down', syrveMode: config.SYRVE_MODE });
+      return reply.code(503).send({ status: 'error', db: 'down' });
     }
-    return { status: 'ok', db: 'up', syrveMode: config.SYRVE_MODE };
+    return { status: 'ok', db: 'up' };
   });
 
   // О1: перевірка звʼязку з Syrve (організація + програма)
   app.get('/health/syrve', async (_req, reply) => {
     try {
       const { organization, program } = await discoverSyrve(syrve);
-      return { status: 'ok', mode: config.SYRVE_MODE, organization, program };
+      return { status: 'ok', organization, program };
     } catch (e) {
       return reply.code(502).send({ status: 'error', message: (e as Error).message });
     }

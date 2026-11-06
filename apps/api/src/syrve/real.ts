@@ -16,7 +16,7 @@ interface RealOptions {
   fetchImpl?: typeof fetch;
 }
 
-const NOT_FOUND_RE = /not found|не найден|не знайден|doesn.?t exist|does not exist/i;
+const NOT_FOUND_RE = /not found|there is no user|Validation_IncorrectPhone|не найден|не знайден|doesn.?t exist|does not exist/i;
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 // Форми відповідей Syrve описані за документацією /docs; уточнюються за docs/syrve-notes.md.
@@ -44,7 +44,8 @@ export class RealSyrveClient implements SyrveClient {
       const text = await res.text();
       const data = text ? safeJson(text) : null;
       if (!res.ok) {
-        const desc = (data as { errorDescription?: string } | null)?.errorDescription;
+        const b = data as { errorDescription?: string; message?: string } | null;
+        const desc = b?.errorDescription ?? b?.message;
         throw new SyrveError(`Syrve ${path}: ${res.status}${desc ? ` — ${desc}` : ''}`, res.status, data);
       }
       return data as T;
@@ -82,7 +83,7 @@ export class RealSyrveClient implements SyrveClient {
       return r?.id ? toCustomer(r) : null;
     } catch (e) {
       // Гостя не знайдено: 404 або 400 з текстом "not found". Інші помилки (напр. невірний organizationId) пробрасуємо.
-      if (e instanceof SyrveError && (e.status === 404 || (e.status === 400 && NOT_FOUND_RE.test(e.message)))) {
+      if (e instanceof SyrveError && (e.status === 404 || (e.status === 400 && NOT_FOUND_RE.test(`${e.message} ${JSON.stringify(e.body ?? '')}`)))) {
         return null;
       }
       throw e;
