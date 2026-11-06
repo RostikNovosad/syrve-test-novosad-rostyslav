@@ -9,6 +9,8 @@ const schema = z.object({
   SYRVE_API_LOGIN: z.string().min(1),
   TELEGRAM_BOT_TOKEN: z.string().default(''),
   ENABLE_DEV_ROUTES: z.enum(['true', 'false']).default('false').transform((v) => v === 'true'),
+  // Як часто worker перевіряє нові транзакції Syrve (О6)
+  NOTIFY_INTERVAL_SECONDS: z.coerce.number().int().min(1).default(20),
   SESSION_SECRET: z.string().default(''),
   // Перший адміністратор (створюється/оновлюється на старті, якщо обидва задані)
   ADMIN_LOGIN: z.string().default(''),

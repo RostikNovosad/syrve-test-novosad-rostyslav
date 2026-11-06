@@ -4,6 +4,7 @@ import { createPrisma } from './db.js';
 import { createBot } from './bot/index.js';
 import { randomBytes } from 'node:crypto';
 import { seedAdmin } from './admin/session.js';
+import { startNotificationWorker } from './worker/notifications.js';
 import { createSyrveClient, createSyrveContext, discoverSyrve } from './syrve/index.js';
 
 const config = loadConfig();
@@ -46,7 +47,26 @@ if (config.TELEGRAM_BOT_TOKEN) {
   app.log.warn('TELEGRAM_BOT_TOKEN не задано — бот не запущено');
 }
 
+let stopWorker: (() => void) | undefined;
+if (bot) {
+  const api = bot.api;
+  stopWorker = startNotificationWorker(
+    {
+      prisma,
+      syrve,
+      resolveCtx,
+      send: async (telegramId, text) => void (await api.sendMessage(Number(telegramId), text)),
+      log: { info: (m) => app.log.info(m), error: (m) => app.log.error(m) },
+    },
+    config.NOTIFY_INTERVAL_SECONDS * 1000,
+  );
+  app.log.info(`Worker сповіщень запущено (кожні ${config.NOTIFY_INTERVAL_SECONDS} с)`);
+} else {
+  app.log.warn('Worker сповіщень не запущено: немає TELEGRAM_BOT_TOKEN');
+}
+
 const shutdown = async () => {
+  stopWorker?.();
   await bot?.stop();
   await app.close();
   await prisma.$disconnect();

@@ -15,6 +15,8 @@ model Guest {
   name            String
   syrveCustomerId String   @unique @map("syrve_customer_id")
   cardNumber      String?  @map("card_number")
+  // Остання оброблена revision транзакцій Syrve цього гостя; null — ще не було першого проходу worker
+  lastRevision    BigInt?  @map("last_revision")
   createdAt       DateTime @default(now()) @map("created_at")
 
   operations BonusOperation[]
