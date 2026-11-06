@@ -8,7 +8,7 @@ Syrve Loyalty — джерело істини (гості, картки, бал�
 - **Fastify** — API, віддача зібраної адмінки, життєвий цикл бота і worker (плагіни, TypeBox-схеми, pino-логи, `inject()` для тестів)
 - **grammY** — Telegram-бот, long polling (без домену й HTTPS)
 - **Nuxt 3 + Vue 3 + TS** — адмін-панель (і Mini App, якщо беремо Д3); **Nuxt UI** (українська локаль `uk`). Режим SPA (`ssr: false`), збірка через `nuxt generate` у статику, яку віддає Fastify — окремий Node-сервер для фронту не потрібен
-- **Postgres 16 + Prisma** — міграції через `prisma migrate deploy`, запускаються на старті контейнера
+- **Postgres 17 + Prisma** — міграції через `prisma migrate deploy`, запускаються на старті контейнера
 - **Vitest** — тести; **bcryptjs** — паролі; **qrcode** — QR
 - **Docker**: multi-stage Dockerfile, compose = `db` + `app`; запуск `docker compose up`
 

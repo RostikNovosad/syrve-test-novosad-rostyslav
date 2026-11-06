@@ -34,3 +34,6 @@ docker-compose.override.yml
 
 # Claude Code (локальні налаштування)
 .claude/settings.local.json
+
+# Локальні файли контексту
+/CONTEXT.md
