@@ -94,10 +94,10 @@ const TONES: Record<string, string> = {
     <UAlert v-if="error" color="error" variant="subtle" :title="error" />
 
     <template v-else-if="stats">
-      <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4" :class="loading ? 'opacity-60 transition-opacity' : ''">
+      <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4" :class="loading ? 'opacity-60 transition-opacity' : ''">
         <UCard v-for="c in cards" :key="c.label" class="shadow-sm">
           <div class="flex items-start justify-between gap-3">
-            <div>
+            <div class="min-w-0">
               <p class="text-sm text-muted">{{ c.label }}</p>
               <p class="mt-1 text-2xl font-semibold tabular-nums text-highlighted">{{ c.value }}</p>
               <p class="mt-1 text-xs text-muted">{{ c.hint }}</p>
