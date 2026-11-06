@@ -11,8 +11,13 @@ import {
 } from './types.js';
 
 export const MOCK_ORG: Organization = { id: 'mock-org-1', name: 'Тестове кафе (mock)' };
-export const MOCK_PROGRAM: LoyaltyProgram = { id: 'mock-program-1', name: 'Бонусна програма (mock)', isActive: true };
 export const MOCK_WALLET_ID = 'mock-wallet-1';
+export const MOCK_PROGRAM: LoyaltyProgram = {
+  id: 'mock-program-1',
+  name: 'Бонусна програма (mock)',
+  isActive: true,
+  walletId: MOCK_WALLET_ID,
+};
 
 /** Імітатор Syrve в памʼяті: дозволяє запускати й демонструвати сервіс без доступу до Syrve. */
 export class MockSyrveClient implements SyrveClient {
@@ -57,6 +62,7 @@ export class MockSyrveClient implements SyrveClient {
     if (!c.walletBalances.some((w) => w.programId === programId)) {
       c.walletBalances.push({ walletId: MOCK_WALLET_ID, programId, name: MOCK_PROGRAM.name, balance: 0 });
     }
+    return { walletId: MOCK_WALLET_ID };
   }
 
   async addCard(_org: string, customerId: string, cardNumber: string) {
@@ -72,8 +78,12 @@ export class MockSyrveClient implements SyrveClient {
     this.apply(change, -1);
   }
 
-  async getTransactionsByRevision(_org: string, revision: number): Promise<TransactionsPage> {
-    const transactions = this.transactions.filter((t) => t.revision > revision);
+  async getTransactionsByRevision(
+    _org: string,
+    customerId: string,
+    revision: number,
+  ): Promise<TransactionsPage> {
+    const transactions = this.transactions.filter((t) => t.customerId === customerId && t.revision > revision);
     return { transactions, maxRevision: Math.max(revision, this.revision) };
   }
 
@@ -94,6 +104,7 @@ export class MockSyrveClient implements SyrveClient {
       customerId: c.id,
       walletId: wallet.walletId,
       sum: sign * change.sum,
+      balanceBefore: round2(wallet.balance - sign * change.sum),
       balanceAfter: wallet.balance,
       comment: change.comment,
       createdAt: new Date().toISOString(),

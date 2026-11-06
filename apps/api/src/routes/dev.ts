@@ -4,10 +4,11 @@ import { RealSyrveClient } from '../syrve/real.js';
 import { SyrveError, type SyrveClient } from '../syrve/types.js';
 
 const TAG = ['dev'];
+const ORG_DESC = 'Необовʼязково: за замовчуванням — перша організація з Syrve';
 const orgQuery = {
   type: 'object',
-  required: ['organizationId'],
-  properties: { organizationId: { type: 'string' } },
+  required: [],
+  properties: { organizationId: { type: 'string', description: ORG_DESC } },
 } as const;
 
 /**
@@ -26,10 +27,18 @@ export async function devRoutes(app: FastifyInstance, syrve: SyrveClient) {
     return reply.send(err);
   });
 
+  let cachedOrg: string | undefined;
+  const org = async (given?: string) => {
+    if (given) return given;
+    cachedOrg ??= (await syrve.getOrganizations())[0]?.id;
+    if (!cachedOrg) throw new SyrveError('Syrve не повернув жодної організації', 502);
+    return cachedOrg;
+  };
+
   app.get('/dev/syrve/organizations', { schema: { tags: TAG } }, () => syrve.getOrganizations());
 
-  app.get('/dev/syrve/programs', { schema: { tags: TAG, querystring: orgQuery } }, (req) =>
-    syrve.getPrograms((req.query as { organizationId: string }).organizationId),
+  app.get('/dev/syrve/programs', { schema: { tags: TAG, querystring: orgQuery } }, async (req) =>
+    syrve.getPrograms(await org((req.query as { organizationId?: string }).organizationId)),
   );
 
   app.get(
@@ -40,14 +49,32 @@ export async function devRoutes(app: FastifyInstance, syrve: SyrveClient) {
         description: 'Пошук гостя за телефоном (+380…)',
         querystring: {
           type: 'object',
-          required: ['organizationId', 'phone'],
-          properties: { organizationId: { type: 'string' }, phone: { type: 'string', examples: ['+380501234567'] } },
+          required: ['phone'],
+          properties: { organizationId: { type: 'string', description: ORG_DESC }, phone: { type: 'string', examples: ['+380501234567'] } },
         },
       },
     },
     async (req, reply) => {
-      const q = req.query as { organizationId: string; phone: string };
-      const c = await syrve.findCustomerByPhone(q.organizationId, q.phone);
+      const q = req.query as { organizationId?: string; phone: string };
+      const c = await syrve.findCustomerByPhone(await org(q.organizationId), q.phone);
+      return c ?? reply.code(404).send({ error: 'Гостя не знайдено' });
+    },
+  );
+
+  app.get(
+    '/dev/syrve/customer/:id',
+    {
+      schema: {
+        tags: TAG,
+        description: 'customer/info за id гостя',
+        params: { type: 'object', properties: { id: { type: 'string' } } },
+        querystring: { type: 'object', properties: { organizationId: { type: 'string', description: ORG_DESC } } },
+      },
+    },
+    async (req, reply) => {
+      const { id } = req.params as { id: string };
+      const q = req.query as { organizationId?: string };
+      const c = await syrve.getCustomer(await org(q.organizationId), id);
       return c ?? reply.code(404).send({ error: 'Гостя не знайдено' });
     },
   );
@@ -60,9 +87,9 @@ export async function devRoutes(app: FastifyInstance, syrve: SyrveClient) {
         description: 'customer/create_or_update',
         body: {
           type: 'object',
-          required: ['organizationId', 'phone', 'name'],
+          required: ['phone', 'name'],
           properties: {
-            organizationId: { type: 'string' },
+            organizationId: { type: 'string', description: ORG_DESC },
             id: { type: 'string' },
             phone: { type: 'string', examples: ['+380501234567'] },
             name: { type: 'string', examples: ['Тест Гість'] },
@@ -71,8 +98,8 @@ export async function devRoutes(app: FastifyInstance, syrve: SyrveClient) {
       },
     },
     async (req) => {
-      const { organizationId, ...data } = req.body as { organizationId: string; id?: string; phone: string; name: string };
-      return { id: await syrve.createOrUpdateCustomer(organizationId, data) };
+      const { organizationId, ...data } = req.body as { organizationId?: string; id?: string; phone: string; name: string };
+      return { id: await syrve.createOrUpdateCustomer(await org(organizationId), data) };
     },
   );
 
@@ -84,15 +111,14 @@ export async function devRoutes(app: FastifyInstance, syrve: SyrveClient) {
         description: 'customer/program/add',
         body: {
           type: 'object',
-          required: ['organizationId', 'customerId', 'programId'],
-          properties: { organizationId: { type: 'string' }, customerId: { type: 'string' }, programId: { type: 'string' } },
+          required: ['customerId', 'programId'],
+          properties: { organizationId: { type: 'string', description: ORG_DESC }, customerId: { type: 'string' }, programId: { type: 'string' } },
         },
       },
     },
     async (req) => {
-      const b = req.body as { organizationId: string; customerId: string; programId: string };
-      await syrve.addCustomerToProgram(b.organizationId, b.customerId, b.programId);
-      return { ok: true };
+      const b = req.body as { organizationId?: string; customerId: string; programId: string };
+      return syrve.addCustomerToProgram(await org(b.organizationId), b.customerId, b.programId);
     },
   );
 
@@ -104,14 +130,14 @@ export async function devRoutes(app: FastifyInstance, syrve: SyrveClient) {
         description: 'customer/card/add',
         body: {
           type: 'object',
-          required: ['organizationId', 'customerId', 'cardNumber'],
-          properties: { organizationId: { type: 'string' }, customerId: { type: 'string' }, cardNumber: { type: 'string' } },
+          required: ['customerId', 'cardNumber'],
+          properties: { organizationId: { type: 'string', description: ORG_DESC }, customerId: { type: 'string' }, cardNumber: { type: 'string' } },
         },
       },
     },
     async (req) => {
-      const b = req.body as { organizationId: string; customerId: string; cardNumber: string };
-      await syrve.addCard(b.organizationId, b.customerId, b.cardNumber);
+      const b = req.body as { organizationId?: string; customerId: string; cardNumber: string };
+      await syrve.addCard(await org(b.organizationId), b.customerId, b.cardNumber);
       return { ok: true };
     },
   );
@@ -128,9 +154,9 @@ export async function devRoutes(app: FastifyInstance, syrve: SyrveClient) {
           description: desc,
           body: {
             type: 'object',
-            required: ['organizationId', 'customerId', 'walletId', 'sum'],
+            required: ['customerId', 'walletId', 'sum'],
             properties: {
-              organizationId: { type: 'string' },
+              organizationId: { type: 'string', description: ORG_DESC },
               customerId: { type: 'string' },
               walletId: { type: 'string' },
               sum: { type: 'number', exclusiveMinimum: 0 },
@@ -141,9 +167,9 @@ export async function devRoutes(app: FastifyInstance, syrve: SyrveClient) {
       },
       async (req) => {
         const { organizationId, ...change } = req.body as {
-          organizationId: string; customerId: string; walletId: string; sum: number; comment?: string;
+          organizationId?: string; customerId: string; walletId: string; sum: number; comment?: string;
         };
-        await (kind === 'topup' ? syrve.topUp : syrve.chargeOff).call(syrve, organizationId, change);
+        await (kind === 'topup' ? syrve.topUp : syrve.chargeOff).call(syrve, await org(organizationId), change);
         return { ok: true };
       },
     );
@@ -154,17 +180,22 @@ export async function devRoutes(app: FastifyInstance, syrve: SyrveClient) {
     {
       schema: {
         tags: TAG,
-        description: 'customer/transactions/by_revision',
+        description: 'customer/transactions/by_revision — транзакції ОДНОГО гостя (customerId обовʼязковий)',
         querystring: {
           type: 'object',
-          required: ['organizationId'],
-          properties: { organizationId: { type: 'string' }, revision: { type: 'integer', default: 0 } },
+          required: ['customerId'],
+          properties: {
+            organizationId: { type: 'string', description: ORG_DESC },
+            customerId: { type: 'string' },
+            revision: { type: 'integer', default: 0 },
+            pageSize: { type: 'integer', default: 100 },
+          },
         },
       },
     },
-    (req) => {
-      const q = req.query as { organizationId: string; revision?: number };
-      return syrve.getTransactionsByRevision(q.organizationId, q.revision ?? 0);
+    async (req) => {
+      const q = req.query as { organizationId?: string; customerId: string; revision?: number; pageSize?: number };
+      return syrve.getTransactionsByRevision(await org(q.organizationId), q.customerId, q.revision ?? 0, q.pageSize);
     },
   );
 

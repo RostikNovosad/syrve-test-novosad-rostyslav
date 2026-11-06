@@ -16,6 +16,8 @@ interface RealOptions {
   fetchImpl?: typeof fetch;
 }
 
+const NOT_FOUND_RE = /not found|не найден|не знайден|doesn.?t exist|does not exist/i;
+
 /* eslint-disable @typescript-eslint/no-explicit-any */
 // Форми відповідей Syrve описані за документацією /docs; уточнюються за docs/syrve-notes.md.
 
@@ -42,7 +44,8 @@ export class RealSyrveClient implements SyrveClient {
       const text = await res.text();
       const data = text ? safeJson(text) : null;
       if (!res.ok) {
-        throw new SyrveError(`Syrve ${path}: ${res.status}`, res.status, data);
+        const desc = (data as { errorDescription?: string } | null)?.errorDescription;
+        throw new SyrveError(`Syrve ${path}: ${res.status}${desc ? ` — ${desc}` : ''}`, res.status, data);
       }
       return data as T;
     }
@@ -56,10 +59,12 @@ export class RealSyrveClient implements SyrveClient {
 
   async getPrograms(organizationId: string): Promise<LoyaltyProgram[]> {
     const r = await this.post('loyalty/syrve/program', { organizationId });
-    return (r.programs ?? []).map((p: any) => ({
+    // У відповіді Syrve ключ саме "Programs" (з великої літери)
+    return (r.Programs ?? r.programs ?? []).map((p: any) => ({
       id: p.id,
-      name: p.name,
+      name: p.name ?? '',
       isActive: p.isActive ?? true,
+      walletId: p.walletId ?? undefined,
     }));
   }
 
@@ -76,8 +81,10 @@ export class RealSyrveClient implements SyrveClient {
       const r = await this.post('loyalty/syrve/customer/info', { organizationId, ...lookup });
       return r?.id ? toCustomer(r) : null;
     } catch (e) {
-      // Syrve повертає 400/404, коли гостя не знайдено
-      if (e instanceof SyrveError && (e.status === 400 || e.status === 404)) return null;
+      // Гостя не знайдено: 404 або 400 з текстом "not found". Інші помилки (напр. невірний organizationId) пробрасуємо.
+      if (e instanceof SyrveError && (e.status === 404 || (e.status === 400 && NOT_FOUND_RE.test(e.message)))) {
+        return null;
+      }
       throw e;
     }
   }
@@ -94,7 +101,8 @@ export class RealSyrveClient implements SyrveClient {
   }
 
   async addCustomerToProgram(organizationId: string, customerId: string, programId: string) {
-    await this.post('loyalty/syrve/customer/program/add', { organizationId, customerId, programId });
+    const r = await this.post('loyalty/syrve/customer/program/add', { organizationId, customerId, programId });
+    return { walletId: r?.walletId as string | undefined };
   }
 
   async addCard(organizationId: string, customerId: string, cardNumber: string) {
@@ -126,22 +134,35 @@ export class RealSyrveClient implements SyrveClient {
     });
   }
 
-  async getTransactionsByRevision(organizationId: string, revision: number): Promise<TransactionsPage> {
+  async getTransactionsByRevision(
+    organizationId: string,
+    customerId: string,
+    revision: number,
+    pageSize = 100,
+  ): Promise<TransactionsPage> {
     const r = await this.post('loyalty/syrve/customer/transactions/by_revision', {
       organizationId,
+      customerId,
       revision,
+      pageSize,
     });
-    const transactions: WalletTransaction[] = (r.transactions ?? []).map((t: any) => ({
-      id: t.id,
-      customerId: t.customerId,
-      walletId: t.walletId,
-      sum: Number(t.sum),
-      balanceAfter: t.balanceAfter,
-      comment: t.comment,
-      createdAt: t.createdAt ?? t.date,
-      revision: Number(t.revision ?? 0),
-    }));
-    const maxRevision = Math.max(Number(r.maxRevision ?? 0), revision, ...transactions.map((t) => t.revision));
+    const transactions: WalletTransaction[] = (r.transactions ?? []).map((t: any) => {
+      const before = t.balanceBefore ?? undefined;
+      const after = t.balanceAfter ?? undefined;
+      return {
+        id: t.id,
+        customerId,
+        walletId: t.walletId,
+        // знак поля sum в документації не описаний — надійніше рахувати різницю балансів
+        sum: before !== undefined && after !== undefined ? round2(after - before) : Number(t.sum),
+        balanceBefore: before,
+        balanceAfter: after,
+        comment: t.comment ?? undefined,
+        createdAt: t.whenCreated,
+        revision: Number(t.revision ?? 0),
+      };
+    });
+    const maxRevision = Math.max(Number(r.lastRevision ?? 0), revision, ...transactions.map((t) => t.revision));
     return { transactions, maxRevision };
   }
 }
@@ -153,13 +174,14 @@ function toCustomer(r: any): Customer {
     phone: r.phone ?? '',
     cards: (r.cards ?? []).map((c: any) => ({ number: c.number ?? c.track, track: c.track })),
     walletBalances: (r.walletBalances ?? []).map((w: any) => ({
-      walletId: w.wallet?.id ?? w.walletId ?? w.id,
-      programId: w.wallet?.programId ?? w.programId,
-      name: w.wallet?.name ?? w.name,
+      walletId: w.id, // у customer/info id елемента walletBalances — це id гаманця
+      name: w.name,
       balance: Number(w.balance ?? 0),
     })),
   };
 }
+
+const round2 = (n: number) => Math.round(n * 100) / 100;
 
 function safeJson(text: string): unknown {
   try {

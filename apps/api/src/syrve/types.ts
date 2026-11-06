@@ -7,6 +7,8 @@ export interface LoyaltyProgram {
   id: string;
   name: string;
   isActive: boolean;
+  /** Гаманець програми (бонусний рахунок) */
+  walletId?: string;
 }
 
 export interface WalletBalance {
@@ -33,8 +35,9 @@ export interface WalletTransaction {
   id: string;
   customerId: string;
   walletId: string;
-  /** Зміна балансу: >0 нарахування, <0 списання */
+  /** Зміна балансу: >0 нарахування, <0 списання (balanceAfter − balanceBefore) */
   sum: number;
+  balanceBefore?: number;
   balanceAfter?: number;
   comment?: string;
   createdAt: string;
@@ -43,7 +46,7 @@ export interface WalletTransaction {
 
 export interface TransactionsPage {
   transactions: WalletTransaction[];
-  /** Найбільша revision у відповіді (або вхідна, якщо нових немає) */
+  /** Остання відома revision (передавати наступного разу як revision) */
   maxRevision: number;
 }
 
@@ -67,11 +70,21 @@ export interface SyrveClient {
     organizationId: string,
     data: { id?: string; phone: string; name: string },
   ): Promise<string>;
-  addCustomerToProgram(organizationId: string, customerId: string, programId: string): Promise<void>;
+  addCustomerToProgram(
+    organizationId: string,
+    customerId: string,
+    programId: string,
+  ): Promise<{ walletId?: string }>;
   addCard(organizationId: string, customerId: string, cardNumber: string): Promise<void>;
   topUp(organizationId: string, change: WalletChange): Promise<void>;
   chargeOff(organizationId: string, change: WalletChange): Promise<void>;
-  getTransactionsByRevision(organizationId: string, revision: number): Promise<TransactionsPage>;
+  /** Syrve віддає транзакції лише по конкретному гостю (customerId обовʼязковий). */
+  getTransactionsByRevision(
+    organizationId: string,
+    customerId: string,
+    revision: number,
+    pageSize?: number,
+  ): Promise<TransactionsPage>;
 }
 
 export class SyrveError extends Error {

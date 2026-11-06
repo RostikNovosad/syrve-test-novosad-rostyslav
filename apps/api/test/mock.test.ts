@@ -34,9 +34,9 @@ describe('MockSyrveClient', () => {
   it('транзакції за revision', async () => {
     const { s, id, walletId } = await setup();
     await s.topUp(MOCK_ORG.id, { customerId: id, walletId, sum: 10 });
-    const p1 = await s.getTransactionsByRevision(MOCK_ORG.id, 0);
+    const p1 = await s.getTransactionsByRevision(MOCK_ORG.id, id, 0);
     expect(p1.transactions).toHaveLength(1);
-    const p2 = await s.getTransactionsByRevision(MOCK_ORG.id, p1.maxRevision);
+    const p2 = await s.getTransactionsByRevision(MOCK_ORG.id, id, p1.maxRevision);
     expect(p2.transactions).toHaveLength(0);
   });
 });
