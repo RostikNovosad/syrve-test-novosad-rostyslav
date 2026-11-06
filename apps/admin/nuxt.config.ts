@@ -11,7 +11,7 @@ export default defineNuxtConfig({
   app: {
     head: {
       htmlAttrs: { lang: 'uk' },
-      title: 'Панель лояльності',
+      title: 'Лояльно — бонуси гостей у Telegram для кафе й ресторанів',
       meta: [{ name: 'viewport', content: 'width=device-width, initial-scale=1' }],
     },
   },
