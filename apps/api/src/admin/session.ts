@@ -35,12 +35,12 @@ export async function checkCredentials(prisma: PrismaClient, login: string, pass
   return admin && ok ? admin : null;
 }
 
-/** Створює або оновлює пароль першого адміна з env. */
+/** Створює або оновлює першого адміна з env — він власник і не може втратити доступ. */
 export async function seedAdmin(prisma: PrismaClient, login: string, password: string) {
   const passwordHash = await bcrypt.hash(password, 10);
   await prisma.adminUser.upsert({
     where: { login },
-    create: { login, passwordHash },
-    update: { passwordHash },
+    create: { login, passwordHash, role: 'owner' },
+    update: { passwordHash, role: 'owner' }, // адмін із env — завжди власник
   });
 }

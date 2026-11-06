@@ -11,7 +11,7 @@ async function submit() {
   error.value = '';
   loading.value = true;
   try {
-    admin.value = await api<{ login: string }>('/auth/login', { method: 'POST', body: form });
+    admin.value = await api<{ login: string; role: AdminRole }>('/auth/login', { method: 'POST', body: form });
     await navigateTo('/');
   } catch (e) {
     error.value = errorMessage(e);

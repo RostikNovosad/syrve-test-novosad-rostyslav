@@ -24,10 +24,16 @@ model Guest {
   @@map("guests")
 }
 
+enum AdminRole {
+  owner
+  manager
+}
+
 model AdminUser {
-  id           String   @id @default(uuid())
-  login        String   @unique
-  passwordHash String   @map("password_hash")
+  id           String    @id @default(uuid())
+  login        String    @unique
+  passwordHash String    @map("password_hash")
+  role         AdminRole @default(manager)
   createdAt    DateTime @default(now()) @map("created_at")
 
   operations BonusOperation[]

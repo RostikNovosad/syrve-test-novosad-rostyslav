@@ -6,10 +6,12 @@ const colorMode = useColorMode();
 const isDark = computed(() => colorMode.value === 'dark');
 const toggleTheme = () => (colorMode.preference = isDark.value ? 'light' : 'dark');
 
-const nav = [
+// roles — для яких ролей пункт видно (без roles — усім)
+const allNav: { label: string; to: string; icon: string; roles?: AdminRole[] }[] = [
   { label: 'Гості', to: '/guests', icon: 'i-lucide-users' },
   { label: 'Журнал', to: '/journal', icon: 'i-lucide-scroll-text' },
 ];
+const nav = computed(() => allNav.filter((n) => !n.roles || (admin.value && n.roles.includes(admin.value.role))));
 
 // Десктоп: згорнутий/розгорнутий сайдбар (памʼятаємо вибір). Мобайл: висувне меню поверх сторінки.
 const collapsed = useCookie<boolean>('sidebar-collapsed', { default: () => false, maxAge: 60 * 60 * 24 * 365 });
@@ -91,7 +93,7 @@ async function logout() {
             </span>
             <div class="label min-w-0 leading-tight">
               <div class="truncate text-sm font-medium text-highlighted">{{ admin?.login }}</div>
-              <div class="text-xs text-muted">Адміністратор</div>
+              <div class="text-xs text-muted">{{ admin ? ROLE_LABELS[admin.role] : '' }}</div>
             </div>
           </div>
           <button class="item hover:bg-elevated" title="Вийти" @click="logout">

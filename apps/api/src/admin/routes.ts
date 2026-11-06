@@ -7,6 +7,7 @@ import { PhoneTakenError, registerGuest } from '../bot/registration.js';
 import type { Config } from '../config.js';
 import type { Customer, SyrveClient, SyrveContext } from '../syrve/index.js';
 import { SyrveError } from '../syrve/index.js';
+import { type AuthedAdmin } from './permissions.js';
 import { buildGuestSearch } from './search.js';
 import { applyOperation, MAX_AMOUNT, OperationError, pickWallet } from './operations.js';
 import {
@@ -91,7 +92,7 @@ export async function adminRoutes(app: FastifyInstance, deps: AdminDeps) {
         path: '/',
         maxAge: SESSION_TTL_SEC,
       });
-      return { login: admin.login };
+      return { login: admin.login, role: admin.role };
     },
   );
 
@@ -102,15 +103,15 @@ export async function adminRoutes(app: FastifyInstance, deps: AdminDeps) {
 
   // Усе нижче — лише для авторизованих
   await app.register(async (secured) => {
-    const adminMap = new WeakMap<FastifyRequest, { id: string; login: string }>();
+    secured.decorateRequest('admin', null as unknown as AuthedAdmin);
     secured.addHook('preHandler', async (req, reply) => {
       const id = adminIdOf(req);
       const admin = id ? await prisma.adminUser.findUnique({ where: { id } }) : null;
       if (!admin) return reply.code(401).send({ error: 'Потрібен вхід' });
-      adminMap.set(req, { id: admin.id, login: admin.login });
+      req.admin = { id: admin.id, login: admin.login, role: admin.role };
     });
 
-    secured.get('/auth/me', { schema: { tags: TAG } }, async (req) => ({ login: adminMap.get(req)!.login }));
+    secured.get('/auth/me', { schema: { tags: TAG } }, async (req) => ({ login: req.admin.login, role: req.admin.role }));
 
     /** Гість із Syrve, якого ще немає в нашій БД (створений у кабінеті Syrve), потрапляє в список при першому відкритті. */
     const ensureLocal = async (c: Customer) => {
@@ -284,7 +285,7 @@ export async function adminRoutes(app: FastifyInstance, deps: AdminDeps) {
         const ctx = await resolveCtx();
         const { customer } = await applyOperation(
           { prisma, syrve, ctx },
-          { customerId, adminId: adminMap.get(req)!.id, ...body },
+          { customerId, adminId: req.admin.id, ...body },
         );
         const local = await prisma.guest.findUnique({ where: { syrveCustomerId: customer.id } });
         return toGuestDto(customer, ctx, local?.telegramId != null);

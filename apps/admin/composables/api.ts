@@ -31,9 +31,12 @@ export interface Operation {
   admin: string;
 }
 
+export type AdminRole = 'owner' | 'manager';
+export const ROLE_LABELS: Record<AdminRole, string> = { owner: 'Власник', manager: 'Менеджер' };
+
 export function useAdmin() {
   // undefined — ще не перевіряли сесію, null — не авторизований
-  return useState<{ login: string } | null | undefined>('admin', () => undefined);
+  return useState<{ login: string; role: AdminRole } | null | undefined>('admin', () => undefined);
 }
 
 export function useApi() {
