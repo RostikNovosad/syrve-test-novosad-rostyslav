@@ -48,6 +48,7 @@ function fakePrisma() {
       findUnique: vi.fn(async ({ where }: any) =>
         rows.find((r) => (where.telegramId !== undefined ? r.telegramId === where.telegramId : r.phone === where.phone)) ?? null),
       create: vi.fn(async ({ data }: any) => (rows.push(data), data)),
+      update: vi.fn(async ({ where, data }: any) => Object.assign(rows.find((r) => r.id === where.id), data)),
     },
   } as any;
 }
@@ -86,6 +87,26 @@ describe('registerGuest', () => {
     await registerGuest({ prisma, syrve, ctx }, { telegramId: 1n, phone: '+380501234567', name: 'А' });
     await expect(
       registerGuest({ prisma, syrve, ctx }, { telegramId: 2n, phone: '+380501234567', name: 'Б' }),
+    ).rejects.toBeInstanceOf(PhoneTakenError);
+  });
+
+  it('гість, створений адміном без Telegram, привʼязується до акаунта в боті', async () => {
+    const syrve = newSyrve();
+    const prisma = fakePrisma();
+    const created = await registerGuest({ prisma, syrve, ctx }, { telegramId: null, phone: '+380501234567', name: 'Адмін' });
+    prisma.rows[0].id = 'g1';
+    const linked = await registerGuest({ prisma, syrve, ctx }, { telegramId: 7n, phone: '+380501234567', name: 'Бот' });
+    expect(prisma.rows).toHaveLength(1);
+    expect(linked.telegramId).toBe(7n);
+    expect(linked.syrveCustomerId).toBe(created.syrveCustomerId);
+  });
+
+  it('двічі створити гостя з одним номером з панелі не можна', async () => {
+    const syrve = newSyrve();
+    const prisma = fakePrisma();
+    await registerGuest({ prisma, syrve, ctx }, { telegramId: null, phone: '+380501234567', name: 'А' });
+    await expect(
+      registerGuest({ prisma, syrve, ctx }, { telegramId: null, phone: '+380501234567', name: 'Б' }),
     ).rejects.toBeInstanceOf(PhoneTakenError);
   });
 });

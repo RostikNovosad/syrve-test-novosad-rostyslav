@@ -10,7 +10,7 @@ datasource db {
 // Гість: лише те, чого немає в Syrve (звʼязок Telegram ↔ Syrve). Баланс не кешуємо.
 model Guest {
   id              String   @id @default(uuid())
-  telegramId      BigInt   @unique @map("telegram_id")
+  telegramId      BigInt?  @unique @map("telegram_id") // null — гостя створено з панелі, без Telegram
   phone           String   @unique // формат +380XXXXXXXXX
   name            String
   syrveCustomerId String   @unique @map("syrve_customer_id")
@@ -47,7 +47,11 @@ enum BonusOperationStatus {
 // Журнал ручних операцій з панелі: хто, коли, скільки, чому.
 model BonusOperation {
   id          String               @id @default(uuid())
-  guestId     String               @map("guest_id")
+  guestId     String?              @map("guest_id") // null, якщо гостя немає в Telegram (лише в Syrve)
+  // Знімок гостя на момент операції: журнал читається без запитів до Syrve
+  syrveCustomerId String           @map("syrve_customer_id")
+  guestPhone      String           @map("guest_phone")
+  guestName       String           @map("guest_name")
   adminId     String               @map("admin_id")
   type        BonusOperationType
   amount      Decimal              @db.Decimal(12, 2)
@@ -57,10 +61,11 @@ model BonusOperation {
   createdAt   DateTime             @default(now()) @map("created_at")
   completedAt DateTime?            @map("completed_at")
 
-  guest Guest     @relation(fields: [guestId], references: [id])
+  guest Guest?    @relation(fields: [guestId], references: [id])
   admin AdminUser @relation(fields: [adminId], references: [id])
 
-  @@index([guestId, createdAt])
+  @@index([syrveCustomerId, createdAt])
+  @@index([createdAt])
   @@map("bonus_operations")
 }
 

@@ -21,4 +21,22 @@ export async function discoverSyrve(client: SyrveClient) {
   return { organization, program };
 }
 
+export interface SyrveContext {
+  organizationId: string;
+  programId: string;
+  walletId?: string;
+}
+
+/** Організація й програма, знайдені один раз і закешовані (помилку не кешуємо). */
+export function createSyrveContext(client: SyrveClient): () => Promise<SyrveContext> {
+  let cached: Promise<SyrveContext> | undefined;
+  return () =>
+    (cached ??= discoverSyrve(client)
+      .then((d) => ({ organizationId: d.organization.id, programId: d.program.id, walletId: d.program.walletId }))
+      .catch((e) => {
+        cached = undefined;
+        throw e;
+      }));
+}
+
 export * from './types.js';

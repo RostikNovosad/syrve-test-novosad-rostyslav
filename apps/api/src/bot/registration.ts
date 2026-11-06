@@ -10,7 +10,8 @@ export interface SyrveContext {
 }
 
 export interface RegisterInput {
-  telegramId: bigint;
+  /** null — гостя створює адмін із панелі (без Telegram) */
+  telegramId: bigint | null;
   phone: string; // вже нормалізований +380…
   name: string;
 }
@@ -39,10 +40,18 @@ export async function registerGuest(
   const { prisma, syrve, ctx } = deps;
   const { organizationId: org, programId } = ctx;
 
-  const byTelegram = await prisma.guest.findUnique({ where: { telegramId: input.telegramId } });
-  if (byTelegram) return byTelegram;
+  if (input.telegramId !== null) {
+    const byTelegram = await prisma.guest.findUnique({ where: { telegramId: input.telegramId } });
+    if (byTelegram) return byTelegram;
+  }
   const byPhone = await prisma.guest.findUnique({ where: { phone: input.phone } });
-  if (byPhone) throw new PhoneTakenError();
+  if (byPhone) {
+    // Гостя вже створив адмін без Telegram — привʼязуємо акаунт до наявного запису
+    if (input.telegramId !== null && byPhone.telegramId === null) {
+      return prisma.guest.update({ where: { id: byPhone.id }, data: { telegramId: input.telegramId } });
+    }
+    throw new PhoneTakenError();
+  }
 
   const existing = await syrve.findCustomerByPhone(org, input.phone);
   const customerId = await syrve.createOrUpdateCustomer(org, {

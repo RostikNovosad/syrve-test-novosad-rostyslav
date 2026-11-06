@@ -10,6 +10,9 @@ const schema = z.object({
   TELEGRAM_BOT_TOKEN: z.string().default(''),
   ENABLE_DEV_ROUTES: z.enum(['true', 'false']).default('false').transform((v) => v === 'true'),
   SESSION_SECRET: z.string().default(''),
+  // Перший адміністратор (створюється/оновлюється на старті, якщо обидва задані)
+  ADMIN_LOGIN: z.string().default(''),
+  ADMIN_PASSWORD: z.string().default(''),
 });
 
 export type Config = z.infer<typeof schema>;
