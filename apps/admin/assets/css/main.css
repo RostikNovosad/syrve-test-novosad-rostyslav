@@ -1,0 +1,13 @@
+@import "tailwindcss";
+@import "@nuxt/ui";
+
+@theme {
+  --font-sans: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+}
+
+/* Десктоп: базовий розмір тексту на порядок більший */
+@media (min-width: 1024px) {
+  html {
+    font-size: 17.5px;
+  }
+}
