@@ -10,7 +10,7 @@ import { SyrveError } from '../syrve/index.js';
 import { logAction, diffFields } from './audit.js';
 import { adminUsersRoutes } from './admins.js';
 import { HttpError, ownerOnly, type AuthedAdmin } from './permissions.js';
-import { buildGuestSearch } from './search.js';
+import { buildGuestOrder, buildGuestWhere, GUEST_SORT_FIELDS, type GuestFilters } from './search.js';
 import { applyOperation, MAX_AMOUNT, OperationError, pickWallet } from './operations.js';
 import {
   checkCredentials,
@@ -155,7 +155,7 @@ export async function adminRoutes(app: FastifyInstance, deps: AdminDeps) {
       },
     );
 
-    // Д2: список гостей з пошуком за номером або імʼям і пагінацією
+    // Д2: список гостей: пошук, фільтри (Telegram, картка, дата реєстрації), сортування, пагінація
     secured.get(
       '/guests',
       {
@@ -165,6 +165,12 @@ export async function adminRoutes(app: FastifyInstance, deps: AdminDeps) {
             type: 'object',
             properties: {
               q: { type: 'string', maxLength: 60 },
+              sort: { type: 'string', enum: [...GUEST_SORT_FIELDS], default: 'createdAt' },
+              order: { type: 'string', enum: ['asc', 'desc'], default: 'desc' },
+              telegram: { type: 'string', enum: ['yes', 'no'] },
+              card: { type: 'string', enum: ['yes', 'no'] },
+              from: { type: 'string', format: 'date-time' },
+              to: { type: 'string', format: 'date-time' },
               page: { type: 'integer', minimum: 1, default: 1 },
               limit: { type: 'integer', minimum: 1, maximum: 50, default: 10 },
             },
@@ -172,10 +178,15 @@ export async function adminRoutes(app: FastifyInstance, deps: AdminDeps) {
         },
       },
       async (req) => {
-        const { q = '', page = 1, limit = 10 } = req.query as { q?: string; page?: number; limit?: number };
-        const where = buildGuestSearch(q);
+        const { page = 1, limit = 10, sort, order, ...filters } = req.query as GuestFilters & {
+          page?: number;
+          limit?: number;
+          sort?: string;
+          order?: string;
+        };
+        const where = buildGuestWhere(filters);
         const [rows, total] = await Promise.all([
-          prisma.guest.findMany({ where, orderBy: { createdAt: 'desc' }, take: limit, skip: (page - 1) * limit }),
+          prisma.guest.findMany({ where, orderBy: buildGuestOrder(sort, order), take: limit, skip: (page - 1) * limit }),
           prisma.guest.count({ where }),
         ]);
         return {
