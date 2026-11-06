@@ -1,0 +1,36 @@
+# Секрети
+.env
+.env.*
+!.env.example
+
+# Залежності
+node_modules/
+
+# Збірки
+dist/
+build/
+.output/
+.nuxt/
+.nitro/
+.cache/
+*.tsbuildinfo
+
+# Тести / покриття
+coverage/
+
+# Логи
+*.log
+npm-debug.log*
+
+# Docker (локальні дані)
+pgdata/
+docker-compose.override.yml
+
+# ОС / редактори
+.DS_Store
+.idea/
+.vscode/*
+!.vscode/extensions.json
+
+# Claude Code (локальні налаштування)
+.claude/settings.local.json
