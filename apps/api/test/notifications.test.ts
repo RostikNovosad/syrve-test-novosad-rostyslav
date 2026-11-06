@@ -9,17 +9,24 @@ const T0 = Date.parse('2026-01-01T12:00:00Z');
 function fakePrisma(guests: any[]) {
   const processed = new Set<string>();
   const notifications: any[] = [];
+  const history = new Map<string, any>();
   const api: any = {
     guests,
     processed,
     notifications,
+    history,
     guest: {
-      findMany: async () => guests.filter((g) => g.telegramId !== null),
+      findMany: async () => guests,
       update: ({ where, data }: any) => async () => Object.assign(guests.find((g) => g.id === where.id), data),
     },
     processedTransaction: {
       findUnique: async ({ where }: any) => (processed.has(where.id) ? { id: where.id } : null),
       upsert: ({ create }: any) => async () => void processed.add(create.id),
+    },
+    loyaltyTransaction: {
+      createMany: ({ data }: any) => async () => {
+        for (const d of data) if (!history.has(d.id)) history.set(d.id, d); // skipDuplicates
+      },
     },
     notification: {
       create: ({ data }: any) => async () => {
@@ -111,11 +118,30 @@ describe('worker сповіщень', () => {
     expect(prisma.guests[0].lastRevision).toBe(3n); // курсор іде далі навіть через пропущені
   });
 
-  it('гості без Telegram не опитуються', async () => {
-    const prisma = fakePrisma([guest({ telegramId: null })]);
+  it('гості без Telegram: транзакції зберігаються для статистики, сповіщень немає', async () => {
+    const prisma = fakePrisma([guest({ telegramId: null, lastRevision: 0n })]);
     const syrve = fakeSyrve([tx('a', 1, 5, 5)]);
+    const send = await run(prisma, syrve);
+    expect(syrve.getTransactionsByRevision).toHaveBeenCalled();
+    expect(prisma.history.has('a')).toBe(true);
+    expect(prisma.notifications).toHaveLength(0);
+    expect(send).not.toHaveBeenCalled();
+  });
+
+  it('статистика: зберігає всю історію (і стару), лише ненульові транзакції нашого гаманця, без дублів', async () => {
+    const prisma = fakePrisma([guest()]);
+    const syrve = fakeSyrve([
+      tx('old', 1, 100, 100, T0 - 86_400_000),
+      tx('new', 2, -30, 70),
+      tx('zero', 3, 0, 70),
+      tx('foreign', 4, 9, 9, T0, 'other'),
+    ]);
     await run(prisma, syrve);
-    expect(syrve.getTransactionsByRevision).not.toHaveBeenCalled();
+    expect([...prisma.history.keys()].sort()).toEqual(['new', 'old']);
+    expect(prisma.history.get('new')).toMatchObject({ guestId: 'g1', sum: -30, balanceAfter: 70, revision: 2n });
+    prisma.guests[0].lastRevision = 0n; // Syrve віддає те саме знову
+    await run(prisma, syrve);
+    expect(prisma.history.size).toBe(2);
   });
 
   it('помилка Telegram: повтор у наступному проході, не втрачається', async () => {
@@ -144,5 +170,14 @@ describe('worker сповіщень', () => {
     });
     const send = await run(prisma, syrve);
     expect(send).toHaveBeenCalledWith(200n, expect.any(String));
+  });
+});
+
+describe('worker без бота', () => {
+  it('збирає транзакції, але не створює й не відправляє сповіщення', async () => {
+    const prisma = fakePrisma([guest({ lastRevision: 0n })]);
+    await runNotificationTick({ prisma, syrve: fakeSyrve([tx('a', 1, 5, 5)]), resolveCtx: async () => CTX });
+    expect(prisma.history.has('a')).toBe(true);
+    expect(prisma.notifications.every((n: any) => n.status === 'pending')).toBe(true);
   });
 });

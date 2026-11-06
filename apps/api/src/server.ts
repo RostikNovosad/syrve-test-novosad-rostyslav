@@ -47,26 +47,22 @@ if (config.TELEGRAM_BOT_TOKEN) {
   app.log.warn('TELEGRAM_BOT_TOKEN не задано — бот не запущено');
 }
 
-let stopWorker: (() => void) | undefined;
-if (bot) {
-  const api = bot.api;
-  stopWorker = startNotificationWorker(
-    {
-      prisma,
-      syrve,
-      resolveCtx,
-      send: async (telegramId, text) => void (await api.sendMessage(Number(telegramId), text)),
-      log: { info: (m) => app.log.info(m), error: (m) => app.log.error(m) },
-    },
-    config.NOTIFY_INTERVAL_SECONDS * 1000,
-  );
-  app.log.info(`Worker сповіщень запущено (кожні ${config.NOTIFY_INTERVAL_SECONDS} с)`);
-} else {
-  app.log.warn('Worker сповіщень не запущено: немає TELEGRAM_BOT_TOKEN');
-}
+// Worker працює і без бота: збирає транзакції для статистики; сповіщення шле, лише якщо бот є
+const botApi = bot?.api;
+const stopWorker = startNotificationWorker(
+  {
+    prisma,
+    syrve,
+    resolveCtx,
+    send: botApi ? async (telegramId, text) => void (await botApi.sendMessage(Number(telegramId), text)) : undefined,
+    log: { info: (m) => app.log.info(m), error: (m) => app.log.error(m) },
+  },
+  config.NOTIFY_INTERVAL_SECONDS * 1000,
+);
+app.log.info(`Worker транзакцій запущено (кожні ${config.NOTIFY_INTERVAL_SECONDS} с)${botApi ? '' : ' — без сповіщень: немає TELEGRAM_BOT_TOKEN'}`);
 
 const shutdown = async () => {
-  stopWorker?.();
+  stopWorker();
   await bot?.stop();
   await app.close();
   await prisma.$disconnect();

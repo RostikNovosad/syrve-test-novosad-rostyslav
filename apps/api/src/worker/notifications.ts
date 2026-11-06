@@ -9,8 +9,8 @@ export interface NotificationDeps {
   prisma: PrismaClient;
   syrve: SyrveClient;
   resolveCtx: () => Promise<SyrveContext>;
-  /** Надсилання в Telegram; кидає помилку, якщо не вдалося */
-  send: (telegramId: bigint, text: string) => Promise<void>;
+  /** Надсилання в Telegram; кидає помилку, якщо не вдалося. Без нього (бот вимкнено) транзакції лише збираються. */
+  send?: (telegramId: bigint, text: string) => Promise<void>;
   log?: { info: (m: string) => void; error: (m: string) => void };
 }
 
@@ -22,20 +22,21 @@ export function notificationText(sum: number, balance: number): string {
 }
 
 /**
- * Один прохід worker: (1) забирає нові транзакції гостів з Syrve й кладе їх в outbox,
- * (2) відправляє те, що чекає в outbox.
+ * Один прохід worker: (1) забирає нові транзакції гостів з Syrve, зберігає їх для статистики
+ * й кладе сповіщення в outbox (лише гостям із Telegram), (2) відправляє те, що чекає в outbox.
  * Єдине місце, що надсилає сповіщення про зміну балансу, — тому операції з панелі
  * й з кабінету Syrve поводяться однаково, а одна транзакція дає одне повідомлення.
  */
 export async function runNotificationTick(deps: NotificationDeps): Promise<void> {
   await collectTransactions(deps);
-  await deliverPending(deps);
+  if (deps.send) await deliverPending({ ...deps, send: deps.send });
 }
 
 async function collectTransactions(deps: NotificationDeps) {
   const { prisma, log } = deps;
   const ctx = await deps.resolveCtx();
-  const guests = await prisma.guest.findMany({ where: { telegramId: { not: null } } });
+  // Усі гості: транзакції потрібні для статистики, сповіщення йдуть лише тим, хто в Telegram
+  const guests = await prisma.guest.findMany();
   for (const guest of guests) {
     try {
       await collectForGuest(deps, ctx, guest);
@@ -58,8 +59,12 @@ async function collectForGuest(
     const page = await syrve.getTransactionsByRevision(ctx.organizationId, guest.syrveCustomerId, revision, PAGE_SIZE);
     const txs = [...page.transactions].sort((a, b) => a.revision - b.revision);
 
+    // Історія для статистики: усі ненульові транзакції нашого гаманця (включно зі старою історією)
+    const history = txs.filter((tx) => tx.sum && (!ctx.walletId || tx.walletId === ctx.walletId));
+
     const rows: { transactionId: string; text: string }[] = [];
     for (const tx of txs) {
+      if (guest.telegramId === null) break; // без Telegram сповіщати нікого
       if (!isNotifiable(tx, ctx, baseline, guest.createdAt)) continue;
       if (await prisma.processedTransaction.findUnique({ where: { id: tx.id } })) continue;
       rows.push({ transactionId: tx.id, text: notificationText(tx.sum, await balanceAfter(syrve, ctx, guest, tx)) });
@@ -70,6 +75,19 @@ async function collectForGuest(
       ...txs.map((tx) =>
         prisma.processedTransaction.upsert({ where: { id: tx.id }, create: { id: tx.id }, update: {} }),
       ),
+      prisma.loyaltyTransaction.createMany({
+        data: history.map((tx) => ({
+          id: tx.id,
+          guestId: guest.id,
+          walletId: tx.walletId,
+          sum: tx.sum,
+          balanceAfter: tx.balanceAfter ?? null,
+          comment: tx.comment ?? null,
+          occurredAt: Number.isFinite(Date.parse(tx.createdAt)) ? new Date(tx.createdAt) : new Date(),
+          revision: BigInt(tx.revision),
+        })),
+        skipDuplicates: true,
+      }),
       ...rows.map((r) =>
         prisma.notification.create({ data: { ...r, telegramId: guest.telegramId! } }),
       ),
@@ -104,7 +122,7 @@ async function balanceAfter(
   return customer?.walletBalances.find((w) => w.walletId === tx.walletId)?.balance ?? 0;
 }
 
-async function deliverPending({ prisma, send, log }: NotificationDeps) {
+async function deliverPending({ prisma, send, log }: NotificationDeps & { send: NonNullable<NotificationDeps['send']> }) {
   const pending = await prisma.notification.findMany({
     where: { status: 'pending' },
     orderBy: { createdAt: 'asc' },
