@@ -7,7 +7,8 @@ import { PhoneTakenError, registerGuest } from '../bot/registration.js';
 import type { Config } from '../config.js';
 import type { Customer, SyrveClient, SyrveContext } from '../syrve/index.js';
 import { SyrveError } from '../syrve/index.js';
-import { type AuthedAdmin } from './permissions.js';
+import { logAction, diffFields } from './audit.js';
+import { ownerOnly, type AuthedAdmin } from './permissions.js';
 import { buildGuestSearch } from './search.js';
 import { applyOperation, MAX_AMOUNT, OperationError, pickWallet } from './operations.js';
 import {
@@ -85,6 +86,7 @@ export async function adminRoutes(app: FastifyInstance, deps: AdminDeps) {
       const { login, password } = req.body as { login: string; password: string };
       const admin = await checkCredentials(prisma, login.trim(), password);
       if (!admin) return reply.code(401).send({ error: 'Невірний логін або пароль' });
+      await logAction(prisma, admin, { action: 'auth.login' }, (e) => req.log.error(e));
       reply.setCookie(SESSION_COOKIE, createSessionToken(admin.id, sessionSecret), {
         httpOnly: true,
         sameSite: 'strict',
@@ -211,6 +213,12 @@ export async function adminRoutes(app: FastifyInstance, deps: AdminDeps) {
         const ctx = await resolveCtx();
         try {
           const guest = await registerGuest({ prisma, syrve, ctx }, { telegramId: null, phone, name });
+          await logAction(
+            prisma,
+            req.admin,
+            { action: 'guest.create', targetType: 'guest', targetId: guest.syrveCustomerId, targetLabel: `${name}, ${phone}` },
+            (e) => req.log.error(e),
+          );
           return reply.code(201).send({ customerId: guest.syrveCustomerId });
         } catch (e) {
           if (e instanceof PhoneTakenError) {
@@ -253,6 +261,15 @@ export async function adminRoutes(app: FastifyInstance, deps: AdminDeps) {
         }
         await syrve.createOrUpdateCustomer(ctx.organizationId, { id: customerId, phone, name });
         await prisma.guest.updateMany({ where: { syrveCustomerId: customerId }, data: { name, phone } });
+        const changes = diffFields({ name: customer.name, phone: customer.phone }, { name, phone });
+        if (Object.keys(changes).length) {
+          await logAction(
+            prisma,
+            req.admin,
+            { action: 'guest.update', targetType: 'guest', targetId: customerId, targetLabel: `${name}, ${phone}`, details: changes },
+            (e) => req.log.error(e),
+          );
+        }
         return guestById(customerId);
       },
     );
@@ -335,6 +352,44 @@ export async function adminRoutes(app: FastifyInstance, deps: AdminDeps) {
             guestPhone: o.guestPhone,
             customerId: o.syrveCustomerId,
             admin: o.admin.login,
+          })),
+        };
+      },
+    );
+
+    // Журнал системних дій — лише для власника
+    secured.get(
+      '/audit',
+      {
+        preHandler: ownerOnly,
+        schema: {
+          tags: TAG,
+          querystring: {
+            type: 'object',
+            properties: {
+              limit: { type: 'integer', minimum: 1, maximum: 100, default: 20 },
+              offset: { type: 'integer', minimum: 0, default: 0 },
+            },
+          },
+        },
+      },
+      async (req) => {
+        const q = req.query as { limit?: number; offset?: number };
+        const [rows, total] = await Promise.all([
+          prisma.auditLog.findMany({ orderBy: { createdAt: 'desc' }, take: q.limit ?? 20, skip: q.offset ?? 0 }),
+          prisma.auditLog.count(),
+        ]);
+        return {
+          total,
+          items: rows.map((r) => ({
+            id: r.id,
+            createdAt: r.createdAt.toISOString(),
+            admin: r.adminLogin,
+            action: r.action,
+            targetType: r.targetType,
+            targetId: r.targetId,
+            targetLabel: r.targetLabel,
+            details: r.details,
           })),
         };
       },

@@ -59,3 +59,23 @@ export function errorMessage(e: unknown): string {
   const data = (e as { data?: { error?: string } })?.data;
   return data?.error ?? 'Не вдалося звʼязатися із сервером. Спробуйте ще раз.';
 }
+
+export interface AuditEntry {
+  id: string;
+  createdAt: string;
+  admin: string;
+  action: string;
+  targetType: string | null;
+  targetId: string | null;
+  targetLabel: string | null;
+  details: Record<string, [string, string]> | { role?: string } | null;
+}
+
+export const AUDIT_ACTIONS: Record<string, { label: string; icon: string }> = {
+  'auth.login': { label: 'Вхід у панель', icon: 'i-lucide-log-in' },
+  'guest.create': { label: 'Створено гостя', icon: 'i-lucide-user-plus' },
+  'guest.update': { label: 'Змінено гостя', icon: 'i-lucide-user-pen' },
+  'admin.create': { label: 'Додано працівника', icon: 'i-lucide-shield-plus' },
+  'admin.update': { label: 'Змінено працівника', icon: 'i-lucide-shield-check' },
+  'admin.delete': { label: 'Видалено працівника', icon: 'i-lucide-shield-x' },
+};

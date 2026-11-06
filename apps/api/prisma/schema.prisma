@@ -37,6 +37,7 @@ model AdminUser {
   createdAt    DateTime @default(now()) @map("created_at")
 
   operations BonusOperation[]
+  auditLogs  AuditLog[]
 
   @@map("admin_users")
 }
@@ -113,4 +114,22 @@ model Notification {
 
   @@index([status, createdAt])
   @@map("notifications")
+}
+
+// Журнал системних дій адміністраторів. Знімок логіну лишається, навіть якщо адміна видалено.
+model AuditLog {
+  id          String    @id @default(uuid())
+  adminId     String?   @map("admin_id")
+  adminLogin  String    @map("admin_login")
+  action      String // напр. auth.login, guest.create, admin.delete
+  targetType  String?   @map("target_type")
+  targetId    String?   @map("target_id")
+  targetLabel String?   @map("target_label")
+  details     Json?
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  admin AdminUser? @relation(fields: [adminId], references: [id], onDelete: SetNull)
+
+  @@index([createdAt])
+  @@map("audit_log")
 }
