@@ -10,6 +10,7 @@ const schema = z
     SYRVE_API_URL: z.string().url().default('https://api-eu.syrve.live'),
     SYRVE_API_LOGIN: z.string().default(''),
     TELEGRAM_BOT_TOKEN: z.string().default(''),
+    ENABLE_DEV_ROUTES: z.enum(['true', 'false']).default('false').transform((v) => v === 'true'),
     SESSION_SECRET: z.string().default(''),
   })
   .superRefine((env, ctx) => {

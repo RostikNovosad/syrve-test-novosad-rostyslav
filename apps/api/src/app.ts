@@ -1,7 +1,9 @@
+import swagger from '@fastify/swagger';
+import swaggerUi from '@fastify/swagger-ui';
 import Fastify, { type FastifyInstance } from 'fastify';
 import type { PrismaClient } from '@prisma/client';
 import type { Config } from './config.js';
-import { MockSyrveClient } from './syrve/mock.js';
+import { devRoutes } from './routes/dev.js';
 import { discoverSyrve, type SyrveClient } from './syrve/index.js';
 
 export interface AppDeps {
@@ -14,6 +16,11 @@ export async function buildApp({ config, prisma, syrve }: AppDeps): Promise<Fast
   const app = Fastify({
     logger: config.NODE_ENV === 'test' ? false : { level: 'info' },
   });
+
+  await app.register(swagger, {
+    openapi: { info: { title: 'Syrve Loyalty API', version: '0.1.0' } },
+  });
+  await app.register(swaggerUi, { routePrefix: '/docs' });
 
   app.get('/health', async (_req, reply) => {
     try {
@@ -34,19 +41,8 @@ export async function buildApp({ config, prisma, syrve }: AppDeps): Promise<Fast
     }
   });
 
-  // Dev-ендпоінт для демо О6: лише в mock-режимі
-  if (config.SYRVE_MODE === 'mock' && syrve instanceof MockSyrveClient) {
-    app.post<{ Body: { customerId: string; sum: number; comment?: string } }>(
-      '/dev/simulate-transaction',
-      async (req, reply) => {
-        const { customerId, sum, comment } = req.body ?? ({} as never);
-        if (!customerId || typeof sum !== 'number' || sum === 0) {
-          return reply.code(400).send({ error: 'потрібні customerId та ненульове число sum' });
-        }
-        syrve.simulateTransaction(customerId, sum, comment);
-        return { ok: true };
-      },
-    );
+  if (config.ENABLE_DEV_ROUTES) {
+    await app.register(async (scope) => devRoutes(scope, syrve));
   }
 
   return app;
