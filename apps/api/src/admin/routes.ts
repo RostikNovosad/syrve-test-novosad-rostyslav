@@ -9,6 +9,7 @@ import type { Customer, SyrveClient, SyrveContext } from '../syrve/index.js';
 import { SyrveError } from '../syrve/index.js';
 import { logAction, diffFields } from './audit.js';
 import { adminUsersRoutes } from './admins.js';
+import { getStats, resolvePeriod } from './stats.js';
 import { HttpError, ownerOnly, type AuthedAdmin } from './permissions.js';
 import { buildGuestOrder, buildGuestWhere, GUEST_SORT_FIELDS, type GuestFilters } from './search.js';
 import { applyOperation, MAX_AMOUNT, OperationError, pickWallet } from './operations.js';
@@ -371,6 +372,26 @@ export async function adminRoutes(app: FastifyInstance, deps: AdminDeps) {
 
     // Працівники (CRUD адмінів) — лише для власника
     await secured.register(adminUsersRoutes, { prisma });
+
+    // Д9: статистика за період — лише для власника
+    secured.get(
+      '/stats',
+      {
+        preHandler: ownerOnly,
+        schema: {
+          tags: TAG,
+          querystring: {
+            type: 'object',
+            properties: { from: { type: 'string', format: 'date-time' }, to: { type: 'string', format: 'date-time' } },
+          },
+        },
+      },
+      async (req) => {
+        const q = req.query as { from?: string; to?: string };
+        const { from, to } = resolvePeriod(q.from, q.to);
+        return getStats(prisma, from, to);
+      },
+    );
 
     // Журнал системних дій — лише для власника
     secured.get(

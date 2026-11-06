@@ -8,6 +8,7 @@ const toggleTheme = () => (colorMode.preference = isDark.value ? 'light' : 'dark
 
 // roles — для яких ролей пункт видно (без roles — усім)
 const allNav: { label: string; to: string; icon: string; roles?: AdminRole[] }[] = [
+  { label: 'Статистика', to: '/stats', icon: 'i-lucide-chart-column', roles: ['owner'] },
   { label: 'Гості', to: '/guests', icon: 'i-lucide-users' },
   { label: 'Журнал', to: '/journal', icon: 'i-lucide-scroll-text' },
   { label: 'Працівники', to: '/admins', icon: 'i-lucide-shield-user', roles: ['owner'] },

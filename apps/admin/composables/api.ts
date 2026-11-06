@@ -87,3 +87,10 @@ export interface AdminUserItem {
   isActive: boolean;
   createdAt: string;
 }
+
+export interface Stats {
+  period: { from: string; to: string };
+  guests: { total: number; inTelegram: number; new: number; newInTelegram: number };
+  bonuses: { earned: number; spent: number; net: number; transactions: number };
+  daily: { date: string; earned: number; spent: number; newGuests: number }[];
+}
