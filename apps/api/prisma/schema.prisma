@@ -34,6 +34,7 @@ model AdminUser {
   login        String    @unique
   passwordHash String    @map("password_hash")
   role         AdminRole @default(manager)
+  isActive     Boolean   @default(true) @map("is_active")
   createdAt    DateTime @default(now()) @map("created_at")
 
   operations BonusOperation[]

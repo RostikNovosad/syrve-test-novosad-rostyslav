@@ -28,3 +28,13 @@ export function requireRole(...roles: AdminRole[]) {
 }
 
 export const ownerOnly = requireRole('owner');
+
+/** Помилка з HTTP-статусом і повідомленням для користувача (обробляється в error handler). */
+export class HttpError extends Error {
+  constructor(
+    message: string,
+    public readonly status: number,
+  ) {
+    super(message);
+  }
+}

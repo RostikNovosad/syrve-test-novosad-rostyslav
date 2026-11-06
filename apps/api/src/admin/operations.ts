@@ -1,15 +1,9 @@
 import type { PrismaClient } from '@prisma/client';
 import type { Customer, SyrveClient, SyrveContext } from '../syrve/index.js';
 import { SyrveError } from '../syrve/index.js';
+import { HttpError } from './permissions.js';
 
-export class OperationError extends Error {
-  constructor(
-    message: string,
-    public readonly status: number,
-  ) {
-    super(message);
-  }
-}
+export class OperationError extends HttpError {}
 
 export const MAX_AMOUNT = 1_000_000;
 

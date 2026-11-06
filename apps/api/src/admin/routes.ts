@@ -8,7 +8,8 @@ import type { Config } from '../config.js';
 import type { Customer, SyrveClient, SyrveContext } from '../syrve/index.js';
 import { SyrveError } from '../syrve/index.js';
 import { logAction, diffFields } from './audit.js';
-import { ownerOnly, type AuthedAdmin } from './permissions.js';
+import { adminUsersRoutes } from './admins.js';
+import { HttpError, ownerOnly, type AuthedAdmin } from './permissions.js';
 import { buildGuestSearch } from './search.js';
 import { applyOperation, MAX_AMOUNT, OperationError, pickWallet } from './operations.js';
 import {
@@ -48,7 +49,7 @@ export async function adminRoutes(app: FastifyInstance, deps: AdminDeps) {
   await app.register(rateLimit, { global: false });
 
   app.setErrorHandler((err, req, reply) => {
-    if (err instanceof OperationError) return reply.code(err.status).send({ error: err.message });
+    if (err instanceof HttpError) return reply.code(err.status).send({ error: err.message });
     if (err instanceof SyrveError) {
       req.log.error({ err, body: err.body }, 'Syrve error');
       return reply.code(502).send({ error: 'Syrve тимчасово недоступний, спробуйте ще раз' });
@@ -109,7 +110,7 @@ export async function adminRoutes(app: FastifyInstance, deps: AdminDeps) {
     secured.addHook('preHandler', async (req, reply) => {
       const id = adminIdOf(req);
       const admin = id ? await prisma.adminUser.findUnique({ where: { id } }) : null;
-      if (!admin) return reply.code(401).send({ error: 'Потрібен вхід' });
+      if (!admin || !admin.isActive) return reply.code(401).send({ error: 'Потрібен вхід' });
       req.admin = { id: admin.id, login: admin.login, role: admin.role };
     });
 
@@ -356,6 +357,9 @@ export async function adminRoutes(app: FastifyInstance, deps: AdminDeps) {
         };
       },
     );
+
+    // Працівники (CRUD адмінів) — лише для власника
+    await secured.register(adminUsersRoutes, { prisma });
 
     // Журнал системних дій — лише для власника
     secured.get(

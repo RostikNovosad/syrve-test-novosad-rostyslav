@@ -79,3 +79,11 @@ export const AUDIT_ACTIONS: Record<string, { label: string; icon: string }> = {
   'admin.update': { label: 'Змінено працівника', icon: 'i-lucide-shield-check' },
   'admin.delete': { label: 'Видалено працівника', icon: 'i-lucide-shield-x' },
 };
+
+export interface AdminUserItem {
+  id: string;
+  login: string;
+  role: AdminRole;
+  isActive: boolean;
+  createdAt: string;
+}

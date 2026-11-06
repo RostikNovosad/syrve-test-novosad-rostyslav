@@ -32,7 +32,7 @@ const DUMMY_HASH = bcrypt.hashSync('not-a-real-password', 10);
 export async function checkCredentials(prisma: PrismaClient, login: string, password: string) {
   const admin = await prisma.adminUser.findUnique({ where: { login } });
   const ok = await bcrypt.compare(password, admin?.passwordHash ?? DUMMY_HASH);
-  return admin && ok ? admin : null;
+  return admin && ok && admin.isActive ? admin : null;
 }
 
 /** Створює або оновлює першого адміна з env — він власник і не може втратити доступ. */
@@ -41,6 +41,6 @@ export async function seedAdmin(prisma: PrismaClient, login: string, password: s
   await prisma.adminUser.upsert({
     where: { login },
     create: { login, passwordHash, role: 'owner' },
-    update: { passwordHash, role: 'owner' }, // адмін із env — завжди власник
+    update: { passwordHash, role: 'owner', isActive: true }, // адмін із env — завжди активний власник
   });
 }
