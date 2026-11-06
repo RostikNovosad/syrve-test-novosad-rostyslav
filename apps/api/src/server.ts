@@ -3,7 +3,7 @@ import { loadConfig } from './config.js';
 import { createPrisma } from './db.js';
 import { createBot } from './bot/index.js';
 import { randomBytes } from 'node:crypto';
-import { seedAdmin } from './admin/session.js';
+import { seedAdmin, seedManager } from './admin/session.js';
 import { startNotificationWorker } from './worker/notifications.js';
 import { createSyrveClient, createSyrveContext, discoverSyrve } from './syrve/index.js';
 
@@ -25,6 +25,11 @@ if (config.ADMIN_LOGIN && config.ADMIN_PASSWORD) {
   app.log.info(`Адміністратор "${config.ADMIN_LOGIN}" готовий до входу`);
 } else {
   app.log.warn('ADMIN_LOGIN/ADMIN_PASSWORD не задано — перший адмін не створено, вхід у панель неможливий');
+}
+
+if (config.SEED_MANAGER_LOGIN && config.SEED_MANAGER_PASSWORD) {
+  const created = await seedManager(prisma, config.SEED_MANAGER_LOGIN, config.SEED_MANAGER_PASSWORD);
+  if (created) app.log.info(`Демо-менеджер "${config.SEED_MANAGER_LOGIN}" створено`);
 }
 
 try {

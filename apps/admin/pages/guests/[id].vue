@@ -44,7 +44,7 @@ function onOperation(updated: Guest) {
     <div v-else-if="loading && !guest" class="py-16 text-center text-sm text-dimmed">Завантаження…</div>
 
     <template v-if="guest">
-      <UCard class="shadow-sm">
+      <UCard>
         <template #header>
           <div class="flex items-center justify-between gap-3">
             <h2 class="font-semibold text-highlighted">Гість</h2>
@@ -88,7 +88,7 @@ function onOperation(updated: Guest) {
         </div>
       </UCard>
 
-      <UCard class="shadow-sm">
+      <UCard>
         <template #header>
           <h2 class="font-semibold text-highlighted">Керування бонусами</h2>
         </template>
@@ -106,7 +106,7 @@ function onOperation(updated: Guest) {
         </div>
       </UCard>
 
-      <UCard class="shadow-sm" :ui="{ body: 'p-0 sm:p-0' }">
+      <UCard :ui="{ body: 'p-0 sm:p-0' }">
         <template #header>
           <h2 class="font-semibold text-highlighted">Історія операцій</h2>
         </template>

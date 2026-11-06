@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { createAdmin, deleteAdmin, updateAdmin } from '../src/admin/admins.js';
 import { checkCredentials } from '../src/admin/session.js';
 import bcrypt from 'bcryptjs';
+import assert from 'node:assert';
 
 type A = { id: string; login: string; role: 'owner' | 'manager'; isActive: boolean; passwordHash: string; createdAt: Date };
 
@@ -95,5 +96,23 @@ describe('checkCredentials', () => {
     expect(await checkCredentials(prisma, 'x', 'secret123')).toBeNull();
     prisma.adminUser.findUnique = async () => ({ id: 'a1', passwordHash, isActive: true });
     expect(await checkCredentials(prisma, 'x', 'secret123')).not.toBeNull();
+  });
+});
+
+import { seedManager } from '../src/admin/session.js';
+
+describe('seedManager', () => {
+  it('створює менеджера, якщо логіну ще немає', async () => {
+    const create = async ({ data }: any) => data;
+    const calls: any[] = [];
+    const prisma: any = { adminUser: { findUnique: async () => null, create: async (a: any) => void calls.push(a) } };
+    expect(await seedManager(prisma, 'user', 'user')).toBe(true);
+    expect(calls[0].data).toMatchObject({ login: 'user', role: 'manager' });
+    expect(await bcrypt.compare('user', calls[0].data.passwordHash)).toBe(true);
+    void create;
+  });
+  it('наявного користувача не чіпає', async () => {
+    const prisma: any = { adminUser: { findUnique: async () => ({ id: 'x' }), create: async () => assert.fail() } };
+    expect(await seedManager(prisma, 'user', 'user')).toBe(false);
   });
 });

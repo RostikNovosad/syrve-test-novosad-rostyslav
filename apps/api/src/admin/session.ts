@@ -44,3 +44,14 @@ export async function seedAdmin(prisma: PrismaClient, login: string, password: s
     update: { passwordHash, role: 'owner', isActive: true }, // адмін із env — завжди активний власник
   });
 }
+
+/**
+ * Створює демо-менеджера, якщо такого логіну ще немає. Наявного не чіпає: пароль і роль,
+ * змінені власником у панелі, не повинні скидатися після перезапуску.
+ * Повертає true, якщо користувача створено.
+ */
+export async function seedManager(prisma: PrismaClient, login: string, password: string): Promise<boolean> {
+  if (await prisma.adminUser.findUnique({ where: { login } })) return false;
+  await prisma.adminUser.create({ data: { login, passwordHash: await bcrypt.hash(password, 10), role: 'manager' } });
+  return true;
+}

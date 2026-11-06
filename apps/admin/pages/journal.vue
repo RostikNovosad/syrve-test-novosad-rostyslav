@@ -17,12 +17,21 @@ const tab = computed({
   <div class="space-y-5">
     <div>
       <h1 class="text-2xl font-semibold text-highlighted">Журнал</h1>
-      <p class="text-sm text-muted">
-        {{ tab === 'bonus' ? 'Ручні нарахування й списання з панелі: хто, коли, скільки і чому' : 'Входи в панель, робота з гостями та керування працівниками' }}
-      </p>
     </div>
-    <UTabs v-if="tabs.length > 1" v-model="tab" :items="tabs" :content="false" class="w-full" />
-    <UCard class="shadow-sm" :ui="{ body: 'p-0 sm:p-0' }">
+    <!-- Явні вкладки: контейнер із фоном і рамкою, активна залита акцентним кольором -->
+    <UTabs
+      v-if="tabs.length > 1"
+      v-model="tab"
+      :items="tabs"
+      :content="false"
+      :ui="{
+        root: 'items-start',
+        list: 'w-full border border-default bg-default p-1 sm:w-fit',
+        trigger: 'px-5 py-2 text-sm font-medium text-toned hover:bg-elevated data-[state=active]:text-inverted data-[state=active]:hover:bg-transparent',
+        indicator: 'rounded-md',
+      }"
+    />
+    <UCard :ui="{ body: 'p-0 sm:p-0' }">
       <OperationsTable v-if="tab === 'bonus'" />
       <AuditTable v-else />
     </UCard>

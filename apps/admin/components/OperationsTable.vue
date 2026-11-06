@@ -50,7 +50,7 @@ watch(page, load);
           <tr>
             <th v-if="!customerId" class="px-4 py-2.5 font-medium">Гість</th>
             <th class="px-4 py-2.5 font-medium">Бонуси</th>
-            <th class="px-4 py-2.5 font-medium">Причина</th>
+            <th class="w-[34%] px-4 py-2.5 font-medium">Причина</th>
             <th class="px-4 py-2.5 font-medium">Змінено</th>
             <th class="px-4 py-2.5 font-medium">Дата</th>
           </tr>

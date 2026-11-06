@@ -6,6 +6,10 @@ const me = useAdmin();
 const toast = useToast();
 
 const items = ref<AdminUserItem[]>([]);
+const PAGE_SIZE = 10;
+const page = ref(1);
+// Працівників небагато, тож список вантажимо цілком, а сторінки нарізаємо на клієнті
+const pageItems = computed(() => items.value.slice((page.value - 1) * PAGE_SIZE, page.value * PAGE_SIZE));
 const loading = ref(true);
 const error = ref('');
 const formOpen = ref(false);
@@ -20,6 +24,8 @@ async function load() {
   error.value = '';
   try {
     items.value = (await api<{ items: AdminUserItem[] }>('/admins')).items;
+    // Після видалення останньої сторінки не лишаємось на порожній
+    page.value = Math.min(page.value, Math.max(1, Math.ceil(items.value.length / PAGE_SIZE)));
   } catch (e) {
     error.value = errorMessage(e);
   } finally {
@@ -63,12 +69,11 @@ const isSelf = (u: AdminUserItem) => u.login === me.value?.login;
     <div class="flex flex-wrap items-center justify-between gap-3">
       <div>
         <h1 class="text-2xl font-semibold text-highlighted">Працівники</h1>
-        <p class="text-sm text-muted">Хто має доступ до панелі й що може робити</p>
       </div>
       <UButton label="Додати працівника" icon="i-lucide-plus" size="lg" @click="add" />
     </div>
 
-    <UCard class="shadow-sm" :ui="{ body: 'p-0 sm:p-0' }">
+    <UCard :ui="{ body: 'p-0 sm:p-0' }">
       <UAlert v-if="error" class="m-4" color="error" variant="subtle" :title="error" />
       <div v-else class="overflow-x-auto" :class="loading ? 'opacity-60 transition-opacity' : ''">
         <table class="w-full text-left text-base">
@@ -82,10 +87,9 @@ const isSelf = (u: AdminUserItem) => u.login === me.value?.login;
             </tr>
           </thead>
           <tbody class="divide-y divide-default">
-            <tr v-for="u in items" :key="u.id">
+            <tr v-for="u in pageItems" :key="u.id">
               <td class="px-4 py-3 font-medium text-highlighted">
                 {{ u.login }}
-                <UBadge v-if="isSelf(u)" label="це ви" color="neutral" variant="subtle" size="sm" class="ml-1" />
               </td>
               <td class="px-4 py-3">
                 <UBadge :label="ROLE_LABELS[u.role]" :color="u.role === 'owner' ? 'primary' : 'neutral'" variant="subtle" />
@@ -101,6 +105,10 @@ const isSelf = (u: AdminUserItem) => u.login === me.value?.login;
             </tr>
           </tbody>
         </table>
+      </div>
+      <div v-if="items.length" class="flex flex-wrap items-center justify-between gap-3 border-t border-default px-4 py-3">
+        <span class="text-sm text-muted">Усього: {{ items.length }}</span>
+        <UPagination v-model:page="page" :items-per-page="PAGE_SIZE" :total="items.length" :sibling-count="1" show-edges />
       </div>
     </UCard>
 

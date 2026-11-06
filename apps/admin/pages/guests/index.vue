@@ -12,10 +12,16 @@ const from = ref(''); // YYYY-MM-DD
 const to = ref('');
 const sort = ref<'createdAt' | 'name' | 'phone'>('createdAt');
 const order = ref<'asc' | 'desc'>('desc');
-const triItems = (yes: string, no: string) => [
-  { label: 'Усі', value: 'all' },
-  { label: yes, value: 'yes' },
-  { label: no, value: 'no' },
+// Підписи самодостатні (без окремих лейблів): у закритому селекті видно, що саме відфільтровано
+const telegramItems = [
+  { label: 'Telegram: усі', value: 'all' },
+  { label: 'Telegram: підключено', value: 'yes' },
+  { label: 'Telegram: немає', value: 'no' },
+];
+const cardItems = [
+  { label: 'Картка: усі', value: 'all' },
+  { label: 'Картка: є', value: 'yes' },
+  { label: 'Картка: немає', value: 'no' },
 ];
 const hasFilters = computed(() => telegram.value !== 'all' || card.value !== 'all' || !!from.value || !!to.value);
 // Межі дати — за місцевим часом користувача, на сервер йдуть як ISO
@@ -125,12 +131,11 @@ async function onSaved(id: string) {
     <div class="flex flex-wrap items-center justify-between gap-3">
       <div>
         <h1 class="text-2xl font-semibold text-highlighted">Гості</h1>
-        <p class="text-sm text-muted">Зареєстровані в програмі лояльності</p>
       </div>
       <UButton label="Додати гостя" icon="i-lucide-plus" size="lg" @click="create" />
     </div>
 
-    <UCard class="shadow-sm" :ui="{ body: 'p-0 sm:p-0' }">
+    <UCard :ui="{ body: 'p-0 sm:p-0' }">
       <div class="border-b border-default p-4">
         <UInput
           v-model="q"
@@ -141,21 +146,13 @@ async function onSaved(id: string) {
           autocomplete="off"
         />
         <p v-if="tooShort" class="mt-2 text-sm text-muted">Введіть щонайменше {{ MIN_SEARCH }} символи, щоб почати пошук</p>
-        <div class="mt-3 flex flex-wrap items-end gap-3">
-          <UFormField label="Telegram" size="sm">
-            <USelect v-model="telegram" :items="triItems('Підключено', 'Немає')" value-key="value" class="w-40" />
-          </UFormField>
-          <UFormField label="Картка" size="sm">
-            <USelect v-model="card" :items="triItems('Є', 'Немає')" value-key="value" class="w-32" />
-          </UFormField>
-          <UFormField label="Зареєстровано від" size="sm">
-            <UInput v-model="from" type="date" :max="to || undefined" class="w-40" />
-          </UFormField>
-          <UFormField label="до" size="sm">
-            <UInput v-model="to" type="date" :min="from || undefined" class="w-40" />
-          </UFormField>
-          <UButton v-if="hasFilters" label="Скинути" icon="i-lucide-x" color="neutral" variant="ghost" size="sm" @click="resetFilters" />
+        <!-- Три фільтри, кожен на третину ширини -->
+        <div class="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
+          <USelect v-model="telegram" :items="telegramItems" value-key="value" size="lg" class="w-full" />
+          <USelect v-model="card" :items="cardItems" value-key="value" size="lg" class="w-full" />
+          <DateRangePicker v-model:from="from" v-model:to="to" placeholder="Дата реєстрації" />
         </div>
+        <UButton v-if="hasFilters" label="Скинути фільтри" icon="i-lucide-rotate-ccw" color="neutral" variant="ghost" class="mt-2" @click="resetFilters" />
       </div>
 
       <UAlert v-if="error" class="m-4" color="error" variant="subtle" :title="error" />
@@ -214,8 +211,8 @@ async function onSaved(id: string) {
         </table>
       </div>
 
-      <div v-if="total > PAGE_SIZE" class="flex items-center justify-between gap-3 border-t border-default px-4 py-3">
-        <span class="hidden text-sm text-muted sm:inline">Усього: {{ total }}</span>
+      <div v-if="total > 0" class="flex flex-wrap items-center justify-between gap-3 border-t border-default px-4 py-3">
+        <span class="text-sm text-muted">Усього: {{ total }}</span>
         <UPagination v-model:page="page" :items-per-page="PAGE_SIZE" :total="total" :sibling-count="1" show-edges />
       </div>
     </UCard>

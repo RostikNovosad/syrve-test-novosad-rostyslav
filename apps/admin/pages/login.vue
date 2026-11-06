@@ -22,7 +22,7 @@ async function submit() {
 </script>
 
 <template>
-  <UCard class="w-full max-w-sm shadow-lg">
+  <UCard class="w-full max-w-sm">
     <form class="space-y-4" @submit.prevent="submit">
       <div class="flex items-center gap-3">
         <span class="flex size-10 items-center justify-center rounded-xl bg-indigo-600 text-white">
