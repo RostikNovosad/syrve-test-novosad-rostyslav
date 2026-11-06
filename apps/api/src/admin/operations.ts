@@ -1,6 +1,5 @@
 import type { PrismaClient } from '@prisma/client';
-import type { Customer, SyrveClient, SyrveContext } from '../syrve/index.js';
-import { SyrveError } from '../syrve/index.js';
+import { pickWallet, SyrveError, type Customer, type SyrveClient, type SyrveContext } from '../syrve/index.js';
 import { HttpError } from './permissions.js';
 
 export class OperationError extends HttpError {}
@@ -13,11 +12,6 @@ export interface OperationInput {
   type: 'topup' | 'chargeoff';
   amount: number;
   reason: string;
-}
-
-/** Гаманець гостя в програмі: за walletId програми, інакше перший. */
-export function pickWallet(customer: Customer, programWalletId?: string) {
-  return customer.walletBalances.find((w) => w.walletId === programWalletId) ?? customer.walletBalances[0];
 }
 
 /**

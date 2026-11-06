@@ -1,13 +1,6 @@
 import { randomInt } from 'node:crypto';
 import type { Guest, PrismaClient } from '@prisma/client';
-import type { SyrveClient } from '../syrve/index.js';
-
-export interface SyrveContext {
-  organizationId: string;
-  programId: string;
-  /** Гаманець програми: за ним шукаємо баланс (customer/info не віддає programId) */
-  walletId?: string;
-}
+import type { SyrveClient, SyrveContext } from '../syrve/index.js';
 
 export interface RegisterInput {
   /** null — гостя створює адмін із панелі (без Telegram) */

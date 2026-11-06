@@ -97,3 +97,11 @@ export class SyrveError extends Error {
     this.name = 'SyrveError';
   }
 }
+
+/** Організація й програма лояльності, знайдені один раз (О1). */
+export interface SyrveContext {
+  organizationId: string;
+  programId: string;
+  /** Гаманець програми: за ним шукаємо баланс (customer/info не віддає programId) */
+  walletId?: string;
+}

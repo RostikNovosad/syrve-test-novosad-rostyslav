@@ -1,7 +1,7 @@
 import type { Config } from '../config.js';
 import { RealSyrveClient } from './real.js';
 import { TokenProvider } from './token.js';
-import type { SyrveClient } from './types.js';
+import type { Customer, SyrveClient, SyrveContext } from './types.js';
 
 export function createSyrveClient(config: Config): SyrveClient {
   const tokens = new TokenProvider({ apiUrl: config.SYRVE_API_URL, apiLogin: config.SYRVE_API_LOGIN });
@@ -21,12 +21,6 @@ export async function discoverSyrve(client: SyrveClient) {
   return { organization, program };
 }
 
-export interface SyrveContext {
-  organizationId: string;
-  programId: string;
-  walletId?: string;
-}
-
 /** Організація й програма, знайдені один раз і закешовані (помилку не кешуємо). */
 export function createSyrveContext(client: SyrveClient): () => Promise<SyrveContext> {
   let cached: Promise<SyrveContext> | undefined;
@@ -37,6 +31,11 @@ export function createSyrveContext(client: SyrveClient): () => Promise<SyrveCont
         cached = undefined;
         throw e;
       }));
+}
+
+/** Гаманець гостя в програмі: за walletId програми, інакше перший. */
+export function pickWallet(customer: Customer, programWalletId?: string) {
+  return customer.walletBalances.find((w) => w.walletId === programWalletId) ?? customer.walletBalances[0];
 }
 
 export * from './types.js';

@@ -6,7 +6,6 @@ import swaggerUi from '@fastify/swagger-ui';
 import Fastify, { type FastifyInstance } from 'fastify';
 import type { PrismaClient } from '@prisma/client';
 import type { Config } from './config.js';
-import { devRoutes } from './routes/dev.js';
 import { adminRoutes } from './admin/routes.js';
 import { discoverSyrve, type SyrveClient, type SyrveContext } from './syrve/index.js';
 
@@ -53,10 +52,6 @@ export async function buildApp({ config, prisma, syrve, resolveCtx, sessionSecre
     }
   });
 
-  if (config.ENABLE_DEV_ROUTES) {
-    await app.register(async (scope) => devRoutes(scope, syrve));
-  }
-
   await app.register(async (scope) => adminRoutes(scope, { config, prisma, syrve, resolveCtx, sessionSecret }), {
     prefix: '/api/admin',
   });
@@ -68,7 +63,7 @@ export async function buildApp({ config, prisma, syrve, resolveCtx, sessionSecre
       // Старі адреси панелі (до появи лендінгу на «/») → /admin/*
       const legacy = /^\/(login|guests|journal|stats|admins)(\/.*)?$/.exec(req.url);
       if (req.method === 'GET' && legacy) return reply.redirect(`/admin${req.url}`, 301);
-      const isPage = req.method === 'GET' && !/^\/(api|dev|docs|health)(\/|$)/.test(req.url) && !/\.\w+$/.test(req.url.split('?')[0]!);
+      const isPage = req.method === 'GET' && !/^\/(api|docs|health)(\/|$)/.test(req.url) && !/\.\w+$/.test(req.url.split('?')[0]!);
       if (isPage) return reply.sendFile('index.html');
       return reply.code(404).send({ error: 'Не знайдено' });
     });

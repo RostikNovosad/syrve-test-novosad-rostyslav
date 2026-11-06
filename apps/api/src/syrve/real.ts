@@ -18,8 +18,7 @@ interface RealOptions {
 
 const NOT_FOUND_RE = /not found|there is no user|Validation_IncorrectPhone|не найден|не знайден|doesn.?t exist|does not exist/i;
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
-// Форми відповідей Syrve описані за документацією /docs; уточнюються за docs/syrve-notes.md.
+// Форми відповідей Syrve описані за документацією /docs; див. docs/syrve-notes.md.
 
 export class RealSyrveClient implements SyrveClient {
   private readonly fetchImpl: typeof fetch;

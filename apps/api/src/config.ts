@@ -8,7 +8,6 @@ const schema = z.object({
   SYRVE_API_URL: z.string().url().default('https://api-eu.syrve.live'),
   SYRVE_API_LOGIN: z.string().min(1),
   TELEGRAM_BOT_TOKEN: z.string().default(''),
-  ENABLE_DEV_ROUTES: z.enum(['true', 'false']).default('false').transform((v) => v === 'true'),
   // Як часто worker перевіряє нові транзакції Syrve (О6)
   NOTIFY_INTERVAL_SECONDS: z.coerce.number().int().min(1).default(20),
   SESSION_SECRET: z.string().default(''),
@@ -25,8 +24,8 @@ export type Config = z.infer<typeof schema>;
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
   const parsed = schema.safeParse(env);
   if (!parsed.success) {
-  const details = parsed.error.issues.map((i) => `${i.path.join('.')}: ${i.message}`).join('; ');
-  throw new Error(`Невірна конфігурація: ${details}`);
+    const details = parsed.error.issues.map((i) => `${i.path.join('.')}: ${i.message}`).join('; ');
+    throw new Error(`Невірна конфігурація: ${details}`);
   }
   return parsed.data;
 }

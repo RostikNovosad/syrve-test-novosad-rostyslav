@@ -80,15 +80,6 @@ model BonusOperation {
   @@map("bonus_operations")
 }
 
-// Остання оброблена revision транзакцій Syrve (по організації).
-model SyncState {
-  key       String   @id
-  revision  BigInt   @default(0)
-  updatedAt DateTime @updatedAt @map("updated_at")
-
-  @@map("sync_state")
-}
-
 // Дедуплікація: одна транзакція Syrve — одне сповіщення.
 model ProcessedTransaction {
   id          String   @id // id транзакції в Syrve

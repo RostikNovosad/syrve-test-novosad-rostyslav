@@ -1,9 +1,9 @@
 import type { PrismaClient } from '@prisma/client';
 import { Bot, InputFile, Keyboard, type Context } from 'grammy';
-import type { SyrveClient } from '../syrve/index.js';
+import type { SyrveClient, SyrveContext } from '../syrve/index.js';
 import { cardQr, getCardView } from './card.js';
 import { normalizePhone } from './phone.js';
-import { PhoneTakenError, registerGuest, type SyrveContext } from './registration.js';
+import { PhoneTakenError, registerGuest } from './registration.js';
 
 export interface BotDeps {
   token: string;

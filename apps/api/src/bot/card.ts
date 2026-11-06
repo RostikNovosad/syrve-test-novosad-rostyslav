@@ -1,7 +1,6 @@
 import type { Guest } from '@prisma/client';
 import QRCode from 'qrcode';
-import type { SyrveClient } from '../syrve/index.js';
-import type { SyrveContext } from './registration.js';
+import { pickWallet, type SyrveClient, type SyrveContext } from '../syrve/index.js';
 
 export interface CardView {
   cardNumber: string;
@@ -19,9 +18,7 @@ export async function getCardView(
 ): Promise<CardView> {
   const customer = await deps.syrve.getCustomer(deps.ctx.organizationId, guest.syrveCustomerId);
   if (!customer) throw new Error('Гостя не знайдено в Syrve');
-  const wallet =
-    customer.walletBalances.find((w) => w.walletId === deps.ctx.walletId) ?? customer.walletBalances[0];
-  const balance = wallet?.balance ?? 0;
+  const balance = pickWallet(customer, deps.ctx.walletId)?.balance ?? 0;
   const cardNumber = customer.cards[0]?.number ?? guest.cardNumber ?? '—';
   return {
     cardNumber,

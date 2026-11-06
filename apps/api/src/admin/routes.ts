@@ -5,14 +5,13 @@ import type { PrismaClient } from '@prisma/client';
 import { normalizePhone } from '../bot/phone.js';
 import { PhoneTakenError, registerGuest } from '../bot/registration.js';
 import type { Config } from '../config.js';
-import type { Customer, SyrveClient, SyrveContext } from '../syrve/index.js';
-import { SyrveError } from '../syrve/index.js';
+import { pickWallet, SyrveError, type Customer, type SyrveClient, type SyrveContext } from '../syrve/index.js';
 import { logAction, diffFields } from './audit.js';
 import { adminUsersRoutes } from './admins.js';
 import { getStats, resolvePeriod } from './stats.js';
 import { HttpError, ownerOnly, type AuthedAdmin } from './permissions.js';
 import { buildGuestOrder, buildGuestWhere, GUEST_SORT_FIELDS, type GuestFilters } from './search.js';
-import { applyOperation, MAX_AMOUNT, OperationError, pickWallet } from './operations.js';
+import { applyOperation, MAX_AMOUNT } from './operations.js';
 import {
   checkCredentials,
   createSessionToken,

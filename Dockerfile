@@ -19,9 +19,8 @@ COPY package.json package-lock.json ./
 COPY apps/api/package.json apps/api/
 COPY apps/admin/package.json apps/admin/
 COPY apps/api/prisma apps/api/prisma
-# prisma CLI потрібен у runtime для migrate deploy
-RUN npm ci --omit=dev -w apps/api && npm install --no-save -w apps/api prisma@6 \
-    && npx --prefix apps/api prisma generate --schema apps/api/prisma/schema.prisma
+# prisma CLI (у dependencies) потрібен у runtime для migrate deploy
+RUN npm ci --omit=dev -w apps/api && npx prisma generate --schema apps/api/prisma/schema.prisma
 COPY --from=build /app/apps/api/dist apps/api/dist
 COPY --from=build /app/apps/admin/.output/public apps/admin/.output/public
 WORKDIR /app/apps/api
